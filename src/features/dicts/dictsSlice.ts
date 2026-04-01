@@ -1,0 +1,56 @@
+import { createSlice } from '@reduxjs/toolkit'
+import type { PayloadAction } from '@reduxjs/toolkit'
+
+export type DictSource = 'system' | 'custom' | 'special'
+
+export interface DictItem {
+  id: string
+  name: string
+  wordCount: number
+  source: DictSource
+}
+
+interface DictsState {
+  activeId?: string
+  mine: DictItem[]
+  recommend: DictItem[]
+}
+
+const initialState: DictsState = {
+  activeId: undefined,
+  mine: [
+    { id: 'collected', name: '收藏', wordCount: 0, source: 'special' },
+    { id: 'wrong', name: '错词本', wordCount: 0, source: 'special' },
+    { id: 'mastered', name: '已掌握', wordCount: 0, source: 'special' },
+  ],
+  recommend: [
+    { id: 'cet4', name: 'CET-4 大学英语四级词库', wordCount: 2607, source: 'system' },
+    { id: 'cet6', name: 'CET-6 大学英语六级词库', wordCount: 2345, source: 'system' },
+    { id: 'toefl', name: 'TOEFL 托福考试词库', wordCount: 4264, source: 'system' },
+    { id: 'ielts', name: 'IELTS 雅思词库', wordCount: 3575, source: 'system' },
+  ],
+}
+
+const dictsSlice = createSlice({
+  name: 'dicts',
+  initialState,
+  reducers: {
+    setActive(state, action: PayloadAction<string | undefined>) {
+      state.activeId = action.payload
+    },
+    addCustom(state, action: PayloadAction<{ name: string; wordCount?: number }>) {
+      const id = `d${Date.now()}`
+      state.mine.push({ id, name: action.payload.name, wordCount: action.payload.wordCount ?? 0, source: 'custom' })
+    },
+    updateSpecialCounts(state, action: PayloadAction<{ collected: number; wrong: number; mastered: number }>) {
+      const m = state.mine
+      const upd = (id: string, n: number) => { const d = m.find(i=>i.id===id); if (d) d.wordCount = n }
+      upd('collected', action.payload.collected)
+      upd('wrong', action.payload.wrong)
+      upd('mastered', action.payload.mastered)
+    },
+  },
+})
+
+export const { setActive, addCustom, updateSpecialCounts } = dictsSlice.actions
+export default dictsSlice.reducer
