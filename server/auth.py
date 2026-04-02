@@ -1,5 +1,6 @@
 from datetime import datetime, timedelta, timezone
 from typing import Optional
+import os
 
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
@@ -10,8 +11,8 @@ from sqlalchemy.orm import Session
 from db import SessionLocal
 from models import UserModel
 
-# Configuration
-SECRET_KEY = "smilex-dict-secret-key-change-in-production-2024"
+# Configuration - Use environment variable for SECRET_KEY
+SECRET_KEY = os.getenv("SECRET_KEY", "smilex-dict-secret-key-change-in-production-2024")
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_DAYS = 7
 
@@ -24,11 +25,21 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login")
 
 def hash_password(password: str) -> str:
     """Hash a password using bcrypt."""
+    # bcrypt has a 72 byte limit, truncate if necessary
+    password_bytes = password.encode("utf-8")
+    if len(password_bytes) > 72:
+        password_bytes = password_bytes[:72]
+        password = password_bytes.decode("utf-8", errors="ignore")
     return pwd_context.hash(password)
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     """Verify a password against its hash."""
+    # bcrypt has a 72 byte limit, truncate if necessary
+    password_bytes = plain_password.encode("utf-8")
+    if len(password_bytes) > 72:
+        password_bytes = password_bytes[:72]
+        plain_password = password_bytes.decode("utf-8", errors="ignore")
     return pwd_context.verify(plain_password, hashed_password)
 
 
@@ -53,8 +64,10 @@ def get_db():
         db.close()
 
 
-def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)) -> UserModel:
-    """FastAPI dependency to get the current authenticated user from JWT token."""
+def get_current_user(
+    token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)
+) -> UserModel:
+    """FastAPI dependency to get current authenticated user from JWT token."""
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials",

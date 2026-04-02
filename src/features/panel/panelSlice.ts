@@ -6,6 +6,7 @@ export interface DailyStat {
   newCount: number
   reviewCount: number
   dictationCount: number
+  wrongCount: number
 }
 
 interface PanelState {
@@ -18,7 +19,7 @@ const today = new Date().toISOString().slice(0,10)
 
 const initialState: PanelState = {
   signinDates: [],
-  stats: [{ date: today, newCount: 0, reviewCount: 0, dictationCount: 0 }],
+  stats: [{ date: today, newCount: 0, reviewCount: 0, dictationCount: 0, wrongCount: 0 }],
   historyStats: [],
 }
 
@@ -59,7 +60,7 @@ const panelSlice = createSlice({
     },
     updateToday(state, action: PayloadAction<Partial<Omit<DailyStat,'date'>>>) {
       const s = state.stats.find(x=>x.date===today)
-      if (!s) state.stats.push({ date: today, newCount: 0, reviewCount: 0, dictationCount: 0 })
+      if (!s) state.stats.push({ date: today, newCount: 0, reviewCount: 0, dictationCount: 0, wrongCount: 0 })
       const t = state.stats.find(x=>x.date===today)!
       Object.assign(t, action.payload)
     },

@@ -1,8 +1,25 @@
 import { Link } from 'react-router-dom'
+import { useSelector } from 'react-redux'
+import type { RootState } from '../store'
 
 export default function Home() {
+  const isAuthenticated = useSelector((s: RootState) => s.auth.isAuthenticated)
+
   return (
     <div className="space-y-6 page-enter">
+      {!isAuthenticated && (
+        <div className="rounded-xl border bg-amber-50 border-amber-200 p-4 flex items-center gap-3">
+          <div className="w-8 h-8 rounded-full bg-amber-100 flex items-center justify-center text-amber-600 flex-shrink-0">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
+          </div>
+          <div className="flex-1">
+            <p className="text-sm text-amber-800">
+              您正在以<strong>访客模式</strong>浏览。部分功能需要登录后才能使用，如开始练习、管理词库等。
+              <Link to="/login" className="text-amber-900 font-medium hover:underline ml-1">立即登录</Link>
+            </p>
+          </div>
+        </div>
+      )}
       <div className="grid md:grid-cols-3 gap-4">
         <div className="rounded-xl border bg-white p-5 card-hover">
           <div className="flex items-center gap-2 mb-3">

@@ -10,6 +10,7 @@ export default function Dicts() {
   const navigate = useNavigate()
   const dicts = useSelector((s: RootState) => s.dicts)
   const words = useSelector((s: RootState) => s.words.items)
+  const isAuthenticated = useSelector((s: RootState) => s.auth.isAuthenticated)
   const [name, setName] = useState('')
 
   useEffect(() => {
@@ -47,6 +48,19 @@ export default function Dicts() {
 
   return (
     <div className="space-y-6">
+      {!isAuthenticated && (
+        <div className="rounded-xl border bg-amber-50 border-amber-200 p-4 flex items-center gap-3">
+          <div className="w-8 h-8 rounded-full bg-amber-100 flex items-center justify-center text-amber-600 flex-shrink-0">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
+          </div>
+          <div className="flex-1">
+            <p className="text-sm text-amber-800">
+              您正在以<strong>访客模式</strong>浏览词典。登录后可以创建和管理自己的词典，使用全部功能。
+              <span className="text-amber-900 font-medium cursor-pointer hover:underline ml-1" onClick={() => navigate('/login')}>立即登录</span>
+            </p>
+          </div>
+        </div>
+      )}
       <div className="rounded-xl border bg-white p-4">
         <div className="flex items-center gap-2">
           <span className="text-blue-600">当前{active? '正在学习的词典':'无正在学习的词典'}</span>

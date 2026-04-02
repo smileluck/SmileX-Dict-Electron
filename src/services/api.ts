@@ -71,7 +71,16 @@ async function request<T>(endpoint: string, options: RequestOptions = {}): Promi
   try {
     const response = await fetch(`${API_BASE}${endpoint}`, config)
     if (!response.ok) {
-      throw new ApiError(`API Error: ${response.status} ${response.statusText}`, response.status)
+      let errorMessage = `API Error: ${response.status} ${response.statusText}`
+      try {
+        const errorData = await response.json()
+        if (errorData.detail) {
+          errorMessage = errorData.detail
+        }
+      } catch {
+        // If parsing error response fails, use default message
+      }
+      throw new ApiError(errorMessage, response.status)
     }
     return await response.json() as T
   } catch (error) {
@@ -133,14 +142,16 @@ export interface DailyStat {
   newCount: number
   reviewCount: number
   dictationCount: number
+  wrongCount: number
 }
 
 export interface StatEvent {
-  type: 'new' | 'review' | 'dictation'
+  type: 'new' | 'review' | 'dictation' | 'wrong'
 }
 
 export const statsApi = {
   getToday: () => request<DailyStat>('/api/stats/today'),
+  getHistory: (days: number = 7) => request<DailyStat[]>(`/api/stats/history?days=${days}`),
   addEvent: (event: StatEvent) => request<DailyStat>('/api/stats/event', { method: 'POST', body: event }),
 }
 

@@ -52,3 +52,4 @@ class DailyStatModel(Base):
     newCount = Column(Integer, default=0)
     reviewCount = Column(Integer, default=0)
     dictationCount = Column(Integer, default=0)
+    wrongCount = Column(Integer, default=0)

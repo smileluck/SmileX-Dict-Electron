@@ -5,7 +5,7 @@ import { reviewWord, toggleCollect, markWrong } from '../features/words/wordsSli
 import Icon from '../components/Icon'
 import { API_BASE } from '../config'
 
-type Mode = 'type' | 'confirm'
+type Mode = 'type' | 'confirm' | 'zh-en' | 'en-en'
 
 export default function PracticeWords() {
   const dispatch = useDispatch()
@@ -15,7 +15,9 @@ export default function PracticeWords() {
   const [selectedDictId, setSelectedDictId] = useState<string | undefined>(dicts.activeId)
   const [index, setIndex] = useState(0)
   const [input, setInput] = useState('')
-  const [result, setResult] = useState<'correct'|'wrong'|undefined>(undefined)
+  const [result, setResult] = useState<'correct' | 'wrong' | undefined>(undefined)
+  const [selectedOption, setSelectedOption] = useState<number | null>(null)
+  const [options, setOptions] = useState<string[]>([])
 
   // All available dictionaries for selection
   const allDicts = useMemo(() => {
@@ -37,7 +39,6 @@ export default function PracticeWords() {
       } else if (selectedDictId === 'mastered') {
         filtered = words.filter(w => w.status === 'mastered')
       } else {
-        // Normal dictionary: filter by dictId, include words without dictId for backwards compatibility
         filtered = words.filter(w => w.dictId === selectedDictId)
       }
     }
@@ -50,9 +51,25 @@ export default function PracticeWords() {
 
   const current = queue[index] ?? queue[0]
 
+  // Generate options for en-en mode
+  const generateOptions = useCallback((correctMeaning: string) => {
+    const otherWords = words.filter(w => w.id !== current?.id && w.meaning && w.meaning !== correctMeaning)
+    const shuffled = [...otherWords].sort(() => Math.random() - 0.5)
+    const distractors = shuffled.slice(0, 3).map(w => w.meaning)
+    // If not enough distractors, add placeholder
+    while (distractors.length < 3) {
+      distractors.push('—')
+    }
+    const allOptions = [correctMeaning, ...distractors].sort(() => Math.random() - 0.5)
+    setOptions(allOptions)
+    setSelectedOption(null)
+  }, [words, current])
+
   const next = useCallback(() => {
     setInput('')
     setResult(undefined)
+    setSelectedOption(null)
+    setOptions([])
     setIndex(i => (i + 1) % queue.length)
   }, [queue.length])
 
@@ -61,6 +78,29 @@ export default function PracticeWords() {
     setIndex(0)
     setInput('')
     setResult(undefined)
+    setSelectedOption(null)
+    setOptions([])
+  }
+
+  const handleModeChange = (newMode: Mode) => {
+    setMode(newMode)
+    setInput('')
+    setResult(undefined)
+    setSelectedOption(null)
+    setOptions([])
+    // Generate options when switching to en-en mode
+    if (newMode === 'en-en' && current) {
+      generateOptions(current.meaning)
+    }
+  }
+
+  // Send stats event helper
+  const sendEvent = (type: 'new' | 'review' | 'dictation' | 'wrong') => {
+    fetch(`${API_BASE}/api/stats/event`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ type })
+    })
   }
 
   const submitType = () => {
@@ -86,21 +126,60 @@ export default function PracticeWords() {
     }
 
     dispatch(reviewWord({ wordId: current.id, quality }))
-
-    fetch(`${API_BASE}/api/stats/event`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ type: 'dictation' })
-    })
+    sendEvent('dictation')
 
     if (wasNew && ok) {
-      fetch(`${API_BASE}/api/stats/event`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ type: 'new' })
-      })
+      sendEvent('new')
+    }
+    if (!ok) {
+      sendEvent('wrong')
     }
 
+    setResult(ok ? 'correct' : 'wrong')
+  }
+
+  const submitZhEn = () => {
+    if (!current) return
+
+    const wasNew = current.status === 'new'
+    const userInput = input.trim().toLowerCase()
+    const correctTerm = current.term.toLowerCase()
+    const ok = userInput === correctTerm
+
+    const quality = ok ? 4 : 1
+
+    dispatch(reviewWord({ wordId: current.id, quality }))
+    sendEvent('review')
+
+    if (wasNew && ok) {
+      sendEvent('new')
+    }
+    if (!ok) {
+      sendEvent('wrong')
+    }
+
+    setResult(ok ? 'correct' : 'wrong')
+  }
+
+  const submitEnEn = (optionIdx: number) => {
+    if (!current || result) return
+
+    const selected = options[optionIdx]
+    const ok = selected === current.meaning
+    const wasNew = current.status === 'new'
+    const quality = ok ? 4 : 1
+
+    dispatch(reviewWord({ wordId: current.id, quality }))
+    sendEvent('review')
+
+    if (wasNew && ok) {
+      sendEvent('new')
+    }
+    if (!ok) {
+      sendEvent('wrong')
+    }
+
+    setSelectedOption(optionIdx)
     setResult(ok ? 'correct' : 'wrong')
   }
 
@@ -111,19 +190,13 @@ export default function PracticeWords() {
     const quality = ok ? 4 : 2
 
     dispatch(reviewWord({ wordId: current.id, quality }))
-
-    fetch(`${API_BASE}/api/stats/event`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ type: 'review' })
-    })
+    sendEvent('review')
 
     if (wasNew && ok) {
-      fetch(`${API_BASE}/api/stats/event`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ type: 'new' })
-      })
+      sendEvent('new')
+    }
+    if (!ok) {
+      sendEvent('wrong')
     }
 
     next()
@@ -137,6 +210,14 @@ export default function PracticeWords() {
   const handleMarkWrong = () => {
     if (!current) return
     dispatch(markWrong(current.id))
+  }
+
+  // Generate options when current word changes in en-en mode
+  const handleNextFromResult = () => {
+    next()
+    if (mode === 'en-en' && queue[(index + 1) % queue.length]) {
+      generateOptions(queue[(index + 1) % queue.length].meaning)
+    }
   }
 
   const calculateSimilarity = (s1: string, s2: string): number => {
@@ -169,6 +250,13 @@ export default function PracticeWords() {
 
   const isCollected = current?.status === 'collected'
   const isWrong = current?.status === 'wrong'
+
+  const modeButtons: { key: Mode; label: string }[] = [
+    { key: 'type', label: '打字拼写' },
+    { key: 'confirm', label: '快速确认' },
+    { key: 'zh-en', label: '中→英' },
+    { key: 'en-en', label: '英→英' },
+  ]
 
   if (queue.length === 0) {
     return (
@@ -213,9 +301,16 @@ export default function PracticeWords() {
             ))}
           </select>
         </div>
-        <div className="flex gap-2">
-          <button className={`px-3 py-1 rounded border transition-colors text-sm ${mode==='type'?'bg-brand-100 border-brand-400':''}`} onClick={()=>setMode('type')}>打字拼写</button>
-          <button className={`px-3 py-1 rounded border transition-colors text-sm ${mode==='confirm'?'bg-brand-100 border-brand-400':''}`} onClick={()=>setMode('confirm')}>快速确认</button>
+        <div className="flex gap-1 flex-wrap">
+          {modeButtons.map(m => (
+            <button
+              key={m.key}
+              className={`px-3 py-1 rounded border transition-colors text-sm ${mode === m.key ? 'bg-brand-100 border-brand-400 font-medium' : 'hover:bg-gray-50'}`}
+              onClick={() => handleModeChange(m.key)}
+            >
+              {m.label}
+            </button>
+          ))}
         </div>
         <span className="text-sm text-gray-500">{index + 1} / {queue.length}</span>
       </div>
@@ -224,14 +319,51 @@ export default function PracticeWords() {
       <div className="rounded-xl border bg-white p-4">
         <div className="flex items-start justify-between">
           <div className="flex-1">
-            <div className="text-2xl font-semibold flex items-center gap-2">
-              <Icon name="dict"/> <span>{current?.term}</span>
-            </div>
-            <div className="text-gray-600">{current?.ipa}</div>
-            <div className="mt-2">{current?.meaning}</div>
-            {current?.example && <div className="mt-2 text-sm text-gray-700">例句：{current.example}</div>}
-            {current?.synonyms && <div className="mt-1 text-sm text-gray-700">同义：{current.synonyms.join(', ')}</div>}
-            {current?.synonymsNote && <div className="mt-1 text-xs text-gray-500">区别：{current.synonymsNote}</div>}
+            {/* zh-en mode: show Chinese meaning, hide English term */}
+            {mode === 'zh-en' ? (
+              <>
+                <div className="text-lg font-semibold text-gray-700">
+                  {current?.meaning}
+                </div>
+                {current?.ipa && <div className="text-gray-500 text-sm mt-1">{current.ipa}</div>}
+                {result && (
+                  <div className="mt-2">
+                    <div className="text-2xl font-semibold flex items-center gap-2">
+                      <Icon name="dict" /> <span>{current?.term}</span>
+                    </div>
+                    {current?.example && <div className="mt-1 text-sm text-gray-700">例句：{current.example}</div>}
+                    {current?.synonyms && current.synonyms.length > 0 && <div className="mt-1 text-sm text-gray-700">同义：{current.synonyms.join(', ')}</div>}
+                  </div>
+                )}
+              </>
+            ) : mode === 'en-en' ? (
+              <>
+                {/* en-en mode: show English term + example, hide meaning */}
+                <div className="text-2xl font-semibold flex items-center gap-2">
+                  <Icon name="dict" /> <span>{current?.term}</span>
+                </div>
+                {current?.ipa && <div className="text-gray-500">{current.ipa}</div>}
+                {current?.example && <div className="mt-2 text-sm text-gray-700">例句：{current.example}</div>}
+                {result && (
+                  <div className="mt-2 p-2 rounded bg-gray-50">
+                    <div className="text-sm font-medium text-gray-700">释义：{current?.meaning}</div>
+                    {current?.synonymsNote && <div className="mt-1 text-xs text-gray-500">区别：{current.synonymsNote}</div>}
+                  </div>
+                )}
+              </>
+            ) : (
+              <>
+                {/* type / confirm mode: show everything */}
+                <div className="text-2xl font-semibold flex items-center gap-2">
+                  <Icon name="dict" /> <span>{current?.term}</span>
+                </div>
+                <div className="text-gray-600">{current?.ipa}</div>
+                <div className="mt-2">{current?.meaning}</div>
+                {current?.example && <div className="mt-2 text-sm text-gray-700">例句：{current.example}</div>}
+                {current?.synonyms && current.synonyms.length > 0 && <div className="mt-1 text-sm text-gray-700">同义：{current.synonyms.join(', ')}</div>}
+                {current?.synonymsNote && <div className="mt-1 text-xs text-gray-500">区别：{current.synonymsNote}</div>}
+              </>
+            )}
           </div>
 
           {/* Quick action buttons: collect & wrong */}
@@ -253,23 +385,92 @@ export default function PracticeWords() {
           </div>
         </div>
 
-        {mode==='type' ? (
+        {/* Mode-specific input area */}
+        {mode === 'type' ? (
           <div className="mt-4">
-            <input className="w-full border rounded px-3 py-2" placeholder="输入拼写" value={input} onChange={e=>setInput(e.target.value)} onKeyDown={e=>e.key==='Enter'&&submitType()} />
+            <input className="w-full border rounded px-3 py-2" placeholder="输入拼写" value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && !result && submitType()} />
             <div className="mt-3 flex gap-2">
-              <button className="px-3 py-2 bg-gray-900 text-white rounded hover:bg-gray-800 transition-colors" onClick={submitType}>确认</button>
-              <button className="px-3 py-2 border rounded hover:bg-gray-50 transition-colors" onClick={next}>跳过</button>
+              <button className="px-3 py-2 bg-gray-900 text-white rounded hover:bg-gray-800 transition-colors" onClick={submitType} disabled={!!result}>确认</button>
+              <button className="px-3 py-2 border rounded hover:bg-gray-50 transition-colors" onClick={handleNextFromResult}>跳过</button>
             </div>
             {result && (
-              <div className={`mt-3 text-sm font-medium ${result==='correct'?'text-green-600':'text-red-600'}`}>
-                {result==='correct'?'✓ 正确':'✗ 错误'}
+              <div className={`mt-3 text-sm font-medium ${result === 'correct' ? 'text-green-600' : 'text-red-600'}`}>
+                {result === 'correct' ? '✓ 正确' : `✗ 错误，正确答案：${current?.term}`}
+              </div>
+            )}
+          </div>
+        ) : mode === 'zh-en' ? (
+          <div className="mt-4">
+            <input
+              className="w-full border rounded px-3 py-2"
+              placeholder="输入对应的英文单词"
+              value={input}
+              onChange={e => setInput(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && !result && submitZhEn()}
+              disabled={!!result}
+            />
+            <div className="mt-3 flex gap-2">
+              {!result ? (
+                <button className="px-3 py-2 bg-gray-900 text-white rounded hover:bg-gray-800 transition-colors" onClick={submitZhEn}>确认</button>
+              ) : (
+                <button className="px-3 py-2 bg-brand-500 text-white rounded hover:bg-brand-600 transition-colors" onClick={handleNextFromResult}>下一个</button>
+              )}
+              {!result && (
+                <button className="px-3 py-2 border rounded hover:bg-gray-50 transition-colors" onClick={handleNextFromResult}>跳过</button>
+              )}
+            </div>
+            {result && (
+              <div className={`mt-3 text-sm font-medium ${result === 'correct' ? 'text-green-600' : 'text-red-600'}`}>
+                {result === 'correct' ? '✓ 正确' : `✗ 错误，正确答案：${current?.term}`}
+              </div>
+            )}
+          </div>
+        ) : mode === 'en-en' ? (
+          <div className="mt-4">
+            {options.length >= 4 ? (
+              <div className="grid grid-cols-1 gap-2">
+                {options.map((opt, idx) => {
+                  const isSelected = selectedOption === idx
+                  const isCorrect = opt === current?.meaning
+                  let btnClass = 'border rounded-lg p-3 text-left transition-colors text-sm '
+                  if (result) {
+                    if (isCorrect) {
+                      btnClass += 'bg-green-50 border-green-400 text-green-700'
+                    } else if (isSelected && !isCorrect) {
+                      btnClass += 'bg-red-50 border-red-400 text-red-700'
+                    } else {
+                      btnClass += 'bg-gray-50 border-gray-200 text-gray-400'
+                    }
+                  } else {
+                    btnClass += 'hover:bg-brand-50 hover:border-brand-300 cursor-pointer'
+                  }
+                  return (
+                    <button
+                      key={idx}
+                      className={btnClass}
+                      onClick={() => submitEnEn(idx)}
+                      disabled={!!result}
+                    >
+                      <span className="font-medium mr-2 text-gray-400">{String.fromCharCode(65 + idx)}.</span>
+                      {opt}
+                    </button>
+                  )
+                })}
+              </div>
+            ) : (
+              <div className="text-sm text-gray-400 text-center py-2">词库中单词不足，无法生成选项</div>
+            )}
+            {result && (
+              <div className="mt-3 flex gap-2">
+                <button className="px-3 py-2 bg-brand-500 text-white rounded hover:bg-brand-600 transition-colors" onClick={handleNextFromResult}>下一个</button>
               </div>
             )}
           </div>
         ) : (
+          /* confirm mode */
           <div className="mt-4 flex gap-2">
-            <button className="px-3 py-2 bg-green-600 text-white rounded hover:bg-green-700 transition-colors" onClick={()=>submitConfirm(true)}>掌握</button>
-            <button className="px-3 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition-colors" onClick={()=>submitConfirm(false)}>不掌握</button>
+            <button className="px-3 py-2 bg-green-600 text-white rounded hover:bg-green-700 transition-colors" onClick={() => submitConfirm(true)}>掌握</button>
+            <button className="px-3 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition-colors" onClick={() => submitConfirm(false)}>不掌握</button>
             <button className="px-3 py-2 border rounded hover:bg-gray-50 transition-colors" onClick={next}>下一条</button>
           </div>
         )}

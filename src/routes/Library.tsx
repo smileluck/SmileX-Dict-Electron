@@ -10,31 +10,51 @@ import Loading from '../components/Loading'
 export default function Library() {
   const dispatch = useDispatch()
   const items = useSelector((s: RootState) => s.articles.items)
+  const isAuthenticated = useSelector((s: RootState) => s.auth.isAuthenticated)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string|null>(null)
 
   useEffect(()=>{
-    setLoading(true)
-    articlesApi.list()
-      .then(list => {
-        dispatch(setArticles(list))
-        setError(null)
-      })
-      .catch(err => {
-        console.warn('Failed to fetch articles:', err)
-        setError('无法连接到服务器')
-      })
-      .finally(() => setLoading(false))
-  },[dispatch])
+    if (isAuthenticated) {
+      setLoading(true)
+      articlesApi.list()
+        .then(list => {
+          dispatch(setArticles(list))
+          setError(null)
+        })
+        .catch(err => {
+          console.warn('Failed to fetch articles:', err)
+          setError('无法连接到服务器')
+        })
+        .finally(() => setLoading(false))
+    } else {
+      setLoading(false)
+    }
+  },[dispatch, isAuthenticated])
 
   return (
     <div className="space-y-6">
+      {!isAuthenticated && (
+        <div className="rounded-xl border bg-amber-50 border-amber-200 p-4 flex items-center gap-3">
+          <div className="w-8 h-8 rounded-full bg-amber-100 flex items-center justify-center text-amber-600 flex-shrink-0">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
+          </div>
+          <div className="flex-1">
+            <p className="text-sm text-amber-800">
+              您正在以<strong>访客模式</strong>浏览书籍。登录后可以添加和管理自己的文章/书籍，使用全部功能。
+            </p>
+          </div>
+        </div>
+      )}
+
       <div className="rounded-xl border bg-white p-4">
         <div className="flex items-center justify-between">
           <h3 className="font-semibold">我的文章/书籍</h3>
-          <Link to="/library/new" className="px-3 py-2 bg-brand-500 text-white rounded inline-flex items-center gap-1 hover:bg-brand-600 transition-colors">
-            <Icon name="book"/> 添加书籍/文章
-          </Link>
+          {isAuthenticated && (
+            <Link to="/library/new" className="px-3 py-2 bg-brand-500 text-white rounded inline-flex items-center gap-1 hover:bg-brand-600 transition-colors">
+              <Icon name="book"/> 添加书籍/文章
+            </Link>
+          )}
         </div>
 
         {loading ? (
@@ -54,7 +74,11 @@ export default function Library() {
               <div className="text-sm text-gray-600 line-clamp-2">{a.content}</div>
             </div>
           ))}
-          {items.length===0 && !loading && <div className="text-gray-500 col-span-2 text-center py-8">暂无内容，点击上方按钮添加</div>}
+          {items.length===0 && !loading && (
+            <div className="text-gray-500 col-span-2 text-center py-8">
+              {isAuthenticated ? '暂无内容，点击上方按钮添加' : '请登录以查看和管理您的书籍'}
+            </div>
+          )}
         </div>
       </div>
     </div>
