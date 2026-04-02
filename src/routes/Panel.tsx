@@ -1,27 +1,24 @@
 import { useSelector, useDispatch } from 'react-redux'
 import type { RootState } from '../store'
-import { signIn, setHistoryStats, calcStreak } from '../features/panel/panelSlice'
+import { signIn, calcStreak } from '../features/panel/panelSlice'
 import { useEffect, useState, useMemo } from 'react'
 import { statsApi } from '../services/api'
-import type { OverviewStat } from '../services/api'
 import Loading from '../components/Loading'
 
 export default function Panel() {
   const dispatch = useDispatch()
-  const { signinDates, stats, historyStats } = useSelector((s: RootState) => s.panel)
+  const { signinDates, stats } = useSelector((s: RootState) => s.panel)
   const words = useSelector((s: RootState) => s.words.items)
-  const today = new Date().toISOString().slice(0,10)
-  const todayStatStore = stats.find(s=>s.date===today)
+  const today = new Date().toISOString().slice(0, 10)
+  const todayStatStore = stats.find(s => s.date === today)
   const signed = signinDates.includes(today)
 
-  const [remote, setRemote] = useState<{newCount:number;reviewCount:number;dictationCount:number}|undefined>(undefined)
+  const [remote, setRemote] = useState<{ newCount: number; reviewCount: number; dictationCount: number } | undefined>(undefined)
   const [loading, setLoading] = useState(true)
-  const [historyLoading, setHistoryLoading] = useState(true)
-  const [error, setError] = useState<string|null>(null)
-  const [overview, setOverview] = useState<OverviewStat|null>(null)
+  const [error, setError] = useState<string | null>(null)
 
   // Fetch today's stats
-  useEffect(()=>{
+  useEffect(() => {
     setLoading(true)
     statsApi.getToday()
       .then(data => {
@@ -33,26 +30,6 @@ export default function Panel() {
         setError('无法连接到服务器')
       })
       .finally(() => setLoading(false))
-  },[])
-
-  // Fetch history stats
-  useEffect(() => {
-    setHistoryLoading(true)
-    statsApi.getHistory(7)
-      .then(data => {
-        dispatch(setHistoryStats(data))
-      })
-      .catch(err => {
-        console.warn('Failed to fetch history:', err)
-      })
-      .finally(() => setHistoryLoading(false))
-  }, [dispatch])
-
-  // Fetch overview
-  useEffect(() => {
-    statsApi.getOverview()
-      .then(data => setOverview(data))
-      .catch(err => console.warn('Failed to fetch overview:', err))
   }, [])
 
   // Calculate streak
@@ -64,11 +41,8 @@ export default function Panel() {
   const todayDictation = remote?.dictationCount ?? todayStatStore?.dictationCount ?? 0
   const todayTotal = todayNew + todayReview + todayDictation
 
-  // Sign-in precondition: must have learning activity today
-  const canSignIn = !signed && todayTotal > 0
-
   // Local overview from Redux words
-  const localOverview = useMemo(() => {
+  const overviewData = useMemo(() => {
     const total = words.length
     const mastered = words.filter(w => w.status === 'mastered').length
     const collected = words.filter(w => w.status === 'collected').length
@@ -76,21 +50,6 @@ export default function Panel() {
     const masteryRate = total > 0 ? Math.round(mastered / total * 100) : 0
     return { total, mastered, collected, wrong, masteryRate }
   }, [words])
-
-  // Use remote overview if available, otherwise local
-  const overviewData = overview ? {
-    total: overview.totalWords || localOverview.total,
-    mastered: overview.masteredWords || localOverview.mastered,
-    collected: overview.collectedWords || localOverview.collected,
-    wrong: overview.wrongWords || localOverview.wrong,
-    masteryRate: overview.masteryRate || localOverview.masteryRate,
-  } : localOverview
-
-  // Max value for chart scaling
-  const chartMax = useMemo(() => {
-    if (historyStats.length === 0) return 1
-    return Math.max(...historyStats.map(s => s.newCount + s.reviewCount + s.dictationCount), 1)
-  }, [historyStats])
 
   // Day labels
   const dayLabels = ['日', '一', '二', '三', '四', '五', '六']
@@ -153,18 +112,17 @@ export default function Panel() {
         {error && <div className="mt-2 text-xs text-amber-600">⚠ {error}（显示本地数据）</div>}
       </div>
 
-      {/* Weekly trend chart */}
+      {/* Weekly trend chart - using local stats */}
       <div className="rounded-xl border bg-white p-5">
         <h3 className="font-semibold mb-3">本周学习趋势</h3>
-        {historyLoading ? (
-          <Loading text="加载趋势数据..." />
-        ) : historyStats.length === 0 ? (
+        {stats.length === 0 ? (
           <div className="text-gray-400 text-sm text-center py-4">暂无历史数据</div>
         ) : (
           <div className="flex items-end gap-2 h-32">
-            {historyStats.map((s, i) => {
+            {stats.slice(-7).map((s) => {
               const total = s.newCount + s.reviewCount + s.dictationCount
-              const height = Math.max((total / chartMax) * 100, 4)
+              const maxVal = Math.max(...stats.map(st => st.newCount + st.reviewCount + st.dictationCount), 1)
+              const height = Math.max((total / maxVal) * 100, 4)
               const date = new Date(s.date)
               const dayLabel = dayLabels[date.getDay()]
               const isToday = s.date === today

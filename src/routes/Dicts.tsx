@@ -80,7 +80,7 @@ export default function Dicts() {
               </div>
               <div className="text-xs text-gray-600">{d.wordCount}个词</div>
               <div className="mt-2 flex gap-2">
-                {(['collected','wrong','mastered'] as const).includes(d.id as any) ? (
+                {(['collected','wrong','mastered'] as const).includes(d.id as 'collected' | 'wrong' | 'mastered') ? (
                   <>
                     <button className="px-2 py-1 border rounded text-xs flex items-center gap-1" onClick={()=>quickReview(d.id)}>
                       <Icon name="review"/> <span>快速回顾</span>

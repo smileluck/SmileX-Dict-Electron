@@ -1,4 +1,4 @@
-import { configureStore } from '@reduxjs/toolkit'
+import { configureStore, combineReducers } from '@reduxjs/toolkit'
 import { persistStore, persistReducer } from 'redux-persist'
 import storage from 'redux-persist/lib/storage'
 import wordsReducer from '../features/words/wordsSlice'
@@ -6,26 +6,27 @@ import articlesReducer from '../features/articles/articlesSlice'
 import sessionReducer from '../features/session/sessionSlice'
 import dictsReducer from '../features/dicts/dictsSlice'
 import panelReducer from '../features/panel/panelSlice'
+import authReducer from '../features/auth/authSlice'
 
 const persistConfig = {
   key: 'smilex-dict',
   storage,
-  whitelist: ['words', 'dicts', 'panel', 'articles'], // Only persist these reducers
+  whitelist: ['words', 'dicts', 'panel', 'articles'], // Persist these reducers; auth uses localStorage directly
 }
 
-const persistedWordsReducer = persistReducer(persistConfig, wordsReducer)
-const persistedDictsReducer = persistReducer(persistConfig, dictsReducer)
-const persistedPanelReducer = persistReducer(persistConfig, panelReducer)
-const persistedArticlesReducer = persistReducer(persistConfig, articlesReducer)
+const rootReducer = combineReducers({
+  words: wordsReducer,
+  articles: articlesReducer,
+  session: sessionReducer,
+  dicts: dictsReducer,
+  panel: panelReducer,
+  auth: authReducer,
+})
+
+const persistedReducer = persistReducer(persistConfig, rootReducer)
 
 export const store = configureStore({
-  reducer: {
-    words: persistedWordsReducer,
-    articles: persistedArticlesReducer,
-    session: sessionReducer,
-    dicts: persistedDictsReducer,
-    panel: persistedPanelReducer,
-  },
+  reducer: persistedReducer,
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({
       serializableCheck: {
@@ -35,5 +36,5 @@ export const store = configureStore({
 })
 
 export const persistor = persistStore(store)
-export type RootState = ReturnType<typeof store.getState>
+export type RootState = ReturnType<typeof rootReducer>
 export type AppDispatch = typeof store.dispatch

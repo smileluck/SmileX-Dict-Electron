@@ -29,14 +29,13 @@ function calcStreak(dates: string[]): number {
   const todayDate = new Date().toISOString().slice(0, 10)
   
   // Check if today is in the list; if not, streak might include yesterday
-  let checkDate = new Date(todayDate)
+  const checkDate = new Date(todayDate)
   if (!sorted.includes(todayDate)) {
     // If not signed in today, check from yesterday
     checkDate.setDate(checkDate.getDate() - 1)
   }
   
   let streak = 0
-  const checkStr = checkDate.toISOString().slice(0, 10)
   
   for (let i = 0; i < 365; i++) {
     const d = new Date(checkDate)
