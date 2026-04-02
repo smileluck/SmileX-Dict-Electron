@@ -102,7 +102,12 @@ def get_db():
 
 class UserRegister(BaseModel):
     username: str = Field(min_length=3, max_length=32)
-    password: str = Field(min_length=6, max_length=64)
+    password: str = Field(min_length=8, max_length=64)
+
+
+class UserLogin(BaseModel):
+    username: str = Field(min_length=3, max_length=32)
+    password: str = Field(min_length=8, max_length=64)
 
 
 class UserLogin(BaseModel):
@@ -131,6 +136,33 @@ class AuthResponse(BaseModel):
 
 @app.post("/api/auth/register", response_model=AuthResponse)
 def register(payload: UserRegister, db: Session = Depends(get_db)):
+    # Validate password strength
+    if len(payload.password) < 8:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="密码需要至少8个字符",
+        )
+    if not any(c.isupper() for c in payload.password):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="密码需要包含大写字母",
+        )
+    if not any(c.islower() for c in payload.password):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="密码需要包含小写字母",
+        )
+    if not any(c.isdigit() for c in payload.password):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="密码需要包含数字",
+        )
+    if not any(c in "!@#$%^&*()_+-=[]{}|;:,.<>?/" for c in payload.password):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="密码需要包含特殊字符",
+        )
+
     existing = (
         db.query(UserModel).filter(UserModel.username == payload.username).first()
     )

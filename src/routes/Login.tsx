@@ -20,6 +20,63 @@ export default function Login() {
   // Get the page user came from, default to home
   const from = (location.state as { from?: string })?.from || '/'
 
+  const validatePassword = (pwd: string): { valid: boolean; message?: string } => {
+    if (pwd.length < 8 || pwd.length > 64) {
+      return { valid: false, message: '密码需要 8-64 个字符' }
+    }
+    if (!/[A-Z]/.test(pwd)) {
+      return { valid: false, message: '密码需要包含大写字母' }
+    }
+    if (!/[a-z]/.test(pwd)) {
+      return { valid: false, message: '密码需要包含小写字母' }
+    }
+    if (!/[0-9]/.test(pwd)) {
+      return { valid: false, message: '密码需要包含数字' }
+    }
+    const specialChars = '!@#$%^&*()_+-=[]{}|;:,.<>/?'
+    const hasSpecialChar = new RegExp(`[${specialChars}]`)
+    if (!hasSpecialChar.test(pwd)) {
+      return { valid: false, message: '密码需要包含特殊字符' }
+    }
+    return { valid: true }
+  }
+
+  const getPasswordStrength = (pwd: string): { score: number; label: string; color: string } => {
+    if (pwd.length === 0) {
+      return { score: 0, label: '', color: '' }
+    }
+
+    let score = 0
+    if (pwd.length >= 8) score += 20
+    if (pwd.length >= 12) score += 20
+    if (/[A-Z]/.test(pwd)) score += 20
+    if (/[a-z]/.test(pwd)) score += 20
+    if (/[0-9]/.test(pwd)) score += 20
+    const specialChars = '!@#$%^&*()_+-=[]{}|;:,.<>/?'
+    const hasSpecialChar = new RegExp(`[${specialChars}]`)
+    if (hasSpecialChar.test(pwd)) score += 20
+
+    if (score < 40) {
+      return { score, label: '弱', color: 'bg-red-500' }
+    } else if (score < 60) {
+      return { score, label: '中', color: 'bg-yellow-500' }
+    } else if (score < 80) {
+      return { score, label: '良', color: 'bg-blue-500' }
+    } else {
+      return { score, label: '强', color: 'bg-green-500' }
+    }
+  }
+
+  const passwordStrength = getPasswordStrength(password)
+
+  const passwordRequirements = [
+    { id: 'length', label: '8-64 个字符', check: password.length >= 8 },
+    { id: 'upper', label: '大写字母', check: /[A-Z]/.test(password) },
+    { id: 'lower', label: '小写字母', check: /[a-z]/.test(password) },
+    { id: 'number', label: '数字', check: /[0-9]/.test(password) },
+    { id: 'special', label: '特殊字符', check: /[!@#$%^&*()_+\-=\\[\]{};':"\\|,.<>\\/?]/.test(password) },
+  ]
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
@@ -27,8 +84,10 @@ export default function Login() {
       showToast('用户名需要 3-32 个字符', 'error')
       return
     }
-    if (password.length < 6 || password.length > 64) {
-      showToast('密码需要 6-64 个字符', 'error')
+
+    const passwordValidation = validatePassword(password)
+    if (!passwordValidation.valid) {
+      showToast(passwordValidation.message || '密码格式不正确', 'error')
       return
     }
 
@@ -110,13 +169,53 @@ export default function Login() {
               type="password"
               value={password}
               onChange={e => setPassword(e.target.value)}
-              placeholder="6-64 个字符"
+              placeholder="8-64 个字符"
               className="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
               autoComplete={tab === 'login' ? 'current-password' : 'new-password'}
               required
-              minLength={6}
+              minLength={8}
               maxLength={64}
             />
+
+            {tab === 'login' && (
+              <p className="mt-1 text-xs text-gray-500">
+                密码要求：8-64个字符，包含大小写字母、数字和特殊字符
+              </p>
+            )}
+
+            {tab === 'register' && password.length > 0 && (
+              <div className="mt-2 space-y-2">
+                <div className="flex items-center gap-2">
+                  <div className="flex-1 bg-gray-200 rounded-full h-2">
+                    <div
+                      className={`h-2 rounded-full transition-all duration-300 ${passwordStrength.color}`}
+                      style={{ width: `${passwordStrength.score}%` }}
+                    />
+                  </div>
+                  <span className="text-xs font-medium text-gray-600 w-12">
+                    {passwordStrength.label || '密码强度'}
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-2 text-xs">
+                  {passwordRequirements.map(req => (
+                    <div
+                      key={req.id}
+                      className={`flex items-center gap-1.5 px-2 py-1.5 rounded transition-colors ${
+                        req.check
+                          ? 'bg-green-50 text-green-700 border border-green-200'
+                          : 'bg-gray-50 text-gray-500 border border-gray-200'
+                      }`}
+                    >
+                      <span className={req.check ? 'text-green-600' : 'text-gray-400'}>
+                        {req.check ? '✓' : '○'}
+                      </span>
+                      <span>{req.label}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
 
           <button
