@@ -13,6 +13,7 @@ export interface WordItem {
   synonymsNote?: string
   status: WordStatus
   reviewCount: number
+  dictId?: string // 所属词典ID
   // 记忆算法相关字段
   efactor: number // 记忆因子 (Easiness Factor), 范围 1.3-2.5
   interval: number // 下次复习间隔天数
@@ -27,14 +28,14 @@ interface WordsState {
 
 const initialState: WordsState = {
   items: [
-    { id: '1', term: 'abandon', ipa: '/əˈbændən/', meaning: '放弃；丢弃', example: 'They had to abandon the project.', synonyms: ['give up','desert'], synonymsNote: 'give up 通常指停止做某事；desert 更强调抛弃责任或人。', status: 'new', reviewCount: 0, efactor: 2.5, interval: 0, nextReviewDate: new Date().toISOString(), repetitions: 0 },
-    { id: '2', term: 'benevolent', ipa: '/bɪˈnevələnt/', meaning: '仁慈的；乐善好施的', example: 'A benevolent donor', synonyms: ['kind','charitable'], synonymsNote: 'kind 泛指善良；charitable 强调施舍或慈善。', status: 'new', reviewCount: 0, efactor: 2.5, interval: 0, nextReviewDate: new Date().toISOString(), repetitions: 0 },
-    { id: '3', term: 'candid', ipa: '/ˈkændɪd/', meaning: '坦率的；直言不讳的', example: 'A candid discussion', synonyms: ['frank','honest'], synonymsNote: 'frank 更直接，有时显得生硬；honest 更广义。', status: 'new', reviewCount: 0, efactor: 2.5, interval: 0, nextReviewDate: new Date().toISOString(), repetitions: 0 },
+    { id: '1', term: 'abandon', ipa: '/əˈbændən/', meaning: '放弃；丢弃', example: 'They had to abandon the project.', synonyms: ['give up','desert'], synonymsNote: 'give up 通常指停止做某事；desert 更强调抛弃责任或人。', status: 'new', reviewCount: 0, dictId: 'cet4', efactor: 2.5, interval: 0, nextReviewDate: new Date().toISOString(), repetitions: 0 },
+    { id: '2', term: 'benevolent', ipa: '/bɪˈnevələnt/', meaning: '仁慈的；乐善好施的', example: 'A benevolent donor', synonyms: ['kind','charitable'], synonymsNote: 'kind 泛指善良；charitable 强调施舍或慈善。', status: 'new', reviewCount: 0, dictId: 'cet6', efactor: 2.5, interval: 0, nextReviewDate: new Date().toISOString(), repetitions: 0 },
+    { id: '3', term: 'candid', ipa: '/ˈkændɪd/', meaning: '坦率的；直言不讳的', example: 'A candid discussion', synonyms: ['frank','honest'], synonymsNote: 'frank 更直接，有时显得生硬；honest 更广义。', status: 'new', reviewCount: 0, dictId: 'toefl', efactor: 2.5, interval: 0, nextReviewDate: new Date().toISOString(), repetitions: 0 },
   ],
 }
 
 const wordsSlice = createSlice({
-  namze: 'words',
+  name: 'words',
   initialState,
   reducers: {
     markWrong(state, action: PayloadAction<string>) {
@@ -53,7 +54,7 @@ const wordsSlice = createSlice({
       const w = state.items.find(i => i.id === action.payload)
       if (w) w.reviewCount += 1
     },
-    addWord(state, action: PayloadAction<Omit<WordItem,'id'|'reviewCount'|'status'|'efactor'|'interval'|'nextReviewDate'|'lastReviewDate'|'repetitions'>>) {
+    addWord(state, action: PayloadAction<Omit<WordItem,'id'|'reviewCount'|'status'|'efactor'|'interval'|'nextReviewDate'|'lastReviewDate'|'repetitions'> & { dictId?: string }>) {
       const id = `${Date.now()}`
       state.items.push({ 
         id, 

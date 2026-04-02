@@ -2,10 +2,12 @@ import { useSelector, useDispatch } from 'react-redux'
 import type { RootState } from '../store'
 import { addCustom, setActive, updateSpecialCounts } from '../features/dicts/dictsSlice'
 import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import Icon from '../components/Icon'
 
 export default function Dicts() {
   const dispatch = useDispatch()
+  const navigate = useNavigate()
   const dicts = useSelector((s: RootState) => s.dicts)
   const words = useSelector((s: RootState) => s.words.items)
   const [name, setName] = useState('')
@@ -54,7 +56,7 @@ export default function Dicts() {
           <div className="rounded bg-gray-50 p-2"><div className="text-xl">0</div><div className="text-xs text-gray-500">新词数</div></div>
           <div className="rounded bg-gray-50 p-2"><div className="text-xl">0</div><div className="text-xs text-gray-500">复习次数</div></div>
           <div className="rounded bg-gray-50 p-2"><div className="text-xl">0</div><div className="text-xs text-gray-500">默写次数</div></div>
-          <button className="rounded bg-brand-500 text-white p-2">开始学习</button>
+          <button className="rounded bg-brand-500 text-white p-2 hover:bg-brand-600 transition-colors" onClick={() => { if (active) navigate('/practice/words') }}>开始学习</button>
         </div>
       </div>
 
@@ -107,7 +109,7 @@ export default function Dicts() {
               <div className="font-medium">{d.name}</div>
               <div className="text-xs text-gray-600">{d.wordCount}个词</div>
               <div className="mt-2">
-                <button className="px-2 py-1 border rounded text-xs" onClick={()=>dispatch(setActive(d.id))}>开始学习</button>
+                <button className="px-2 py-1 border rounded text-xs" onClick={()=>{ dispatch(setActive(d.id)); navigate('/practice/words') }}>开始学习</button>
               </div>
             </div>
           ))}
@@ -115,11 +117,11 @@ export default function Dicts() {
       </div>
 
       {viewId && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center">
-          <div className="bg-white rounded-xl w-full max-w-xl p-4">
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50" onClick={()=>setViewId(undefined)}>
+          <div className="bg-white rounded-xl w-full max-w-xl p-4 mx-4" onClick={e=>e.stopPropagation()}>
             <div className="flex items-center justify-between mb-2">
               <div className="font-semibold">列表</div>
-              <button className="px-2 py-1 border rounded text-xs" onClick={()=>setViewId(undefined)}>关闭</button>
+              <button className="px-2 py-1 border rounded text-xs hover:bg-gray-50 transition-colors" onClick={()=>setViewId(undefined)}>关闭</button>
             </div>
             <ul className="max-h-96 overflow-auto space-y-2">
               {itemsByDict(viewId).map(w => (
@@ -135,11 +137,11 @@ export default function Dicts() {
       )}
 
       {reviewIds && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center">
-          <div className="bg-white rounded-xl w-full max-w-md p-4">
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50" onClick={()=>{setReviewIds(undefined); setReviewIndex(0)}}>
+          <div className="bg-white rounded-xl w-full max-w-md p-4 mx-4" onClick={e=>e.stopPropagation()}>
             <div className="flex items-center justify-between mb-3">
               <div className="font-semibold">快速回顾 {reviewIndex+1}/{reviewIds.length}</div>
-              <button className="px-2 py-1 border rounded text-xs" onClick={()=>{setReviewIds(undefined); setReviewIndex(0)}}>退出</button>
+              <button className="px-2 py-1 border rounded text-xs hover:bg-gray-50 transition-colors" onClick={()=>{setReviewIds(undefined); setReviewIndex(0)}}>退出</button>
             </div>
             {(() => {
               const current = words.find(w=>w.id===reviewIds[reviewIndex])
@@ -149,7 +151,7 @@ export default function Dicts() {
                   <div className="text-xl font-semibold">{current.term}</div>
                   <div className="text-gray-600">{current.meaning}</div>
                   <div className="mt-4 flex gap-2">
-                    <button className="px-3 py-2 bg-gray-900 text-white rounded" onClick={()=>setReviewIndex(i=>Math.min(i+1, reviewIds.length-1))}>下一条</button>
+                    <button className="px-3 py-2 bg-gray-900 text-white rounded hover:bg-gray-800 transition-colors" onClick={()=>setReviewIndex(i=>Math.min(i+1, reviewIds.length-1))}>下一条</button>
                   </div>
                 </div>
               )

@@ -49,7 +49,7 @@
 ## 管理后台（Python FastAPI）
 - 位置：`server/`
 - 安装：`pip install -r server/requirements.txt`
-- 启动：`python server/main.py` → `http://localhost:8000`
+- 启动：`python server/main.py` → `http://localhost:8001`
 - 接口：
   - `GET /api/dicts`、`POST /api/dicts`
   - `GET /api/words?dictId=...`、`POST /api/words`

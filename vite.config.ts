@@ -12,11 +12,22 @@ export default defineConfig({
       manifest: {
         name: 'SmileX Dict',
         short_name: 'SmileX Dict',
+        description: '多端背单词与文章练习应用',
         start_url: '/',
         display: 'standalone',
         background_color: '#ffffff',
         theme_color: '#3a93f5',
-        icons: [],
+        icons: [
+          {
+            src: '/smilex.svg',
+            sizes: 'any',
+            type: 'image/svg+xml',
+            purpose: 'any',
+          },
+        ],
+      },
+      workbox: {
+        globPatterns: ['**/*.{js,css,html,ico,png,svg}'],
       },
     }),
   ],

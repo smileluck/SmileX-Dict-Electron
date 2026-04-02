@@ -11,6 +11,7 @@ export interface DailyStat {
 interface PanelState {
   signinDates: string[]
   stats: DailyStat[]
+  historyStats: DailyStat[]
 }
 
 const today = new Date().toISOString().slice(0,10)
@@ -18,6 +19,36 @@ const today = new Date().toISOString().slice(0,10)
 const initialState: PanelState = {
   signinDates: [],
   stats: [{ date: today, newCount: 0, reviewCount: 0, dictationCount: 0 }],
+  historyStats: [],
+}
+
+// Calculate streak from signin dates
+function calcStreak(dates: string[]): number {
+  if (dates.length === 0) return 0
+  const sorted = [...dates].sort().reverse()
+  const todayDate = new Date().toISOString().slice(0, 10)
+  
+  // Check if today is in the list; if not, streak might include yesterday
+  let checkDate = new Date(todayDate)
+  if (!sorted.includes(todayDate)) {
+    // If not signed in today, check from yesterday
+    checkDate.setDate(checkDate.getDate() - 1)
+  }
+  
+  let streak = 0
+  const checkStr = checkDate.toISOString().slice(0, 10)
+  
+  for (let i = 0; i < 365; i++) {
+    const d = new Date(checkDate)
+    d.setDate(d.getDate() - i)
+    const dStr = d.toISOString().slice(0, 10)
+    if (sorted.includes(dStr)) {
+      streak++
+    } else {
+      break
+    }
+  }
+  return streak
 }
 
 const panelSlice = createSlice({
@@ -33,8 +64,12 @@ const panelSlice = createSlice({
       const t = state.stats.find(x=>x.date===today)!
       Object.assign(t, action.payload)
     },
+    setHistoryStats(state, action: PayloadAction<DailyStat[]>) {
+      state.historyStats = action.payload
+    },
   },
 })
 
-export const { signIn, updateToday } = panelSlice.actions
+export const { signIn, updateToday, setHistoryStats } = panelSlice.actions
+export { calcStreak }
 export default panelSlice.reducer
