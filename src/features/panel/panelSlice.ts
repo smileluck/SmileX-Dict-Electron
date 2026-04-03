@@ -23,6 +23,16 @@ const initialState: PanelState = {
   historyStats: [],
 }
 
+// Helper function to check if user can sign in today
+export function canSignInToday(words: Array<{ status: string; nextReviewDate: string }>): boolean {
+  const today = new Date().toISOString().split('T')[0]
+  const pendingWords = words.filter(w =>
+    w.status !== 'mastered' &&
+    w.nextReviewDate.split('T')[0] <= today
+  )
+  return pendingWords.length === 0
+}
+
 // Calculate streak from signin dates
 function calcStreak(dates: string[]): number {
   if (dates.length === 0) return 0

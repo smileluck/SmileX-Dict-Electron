@@ -201,3 +201,21 @@ export const wordsApi = {
   list: (dictId?: string) => request<WordItem[]>('/api/words' + (dictId ? `?dictId=${dictId}` : '')),
   create: (data: WordItem) => request<WordItem>('/api/words', { method: 'POST', body: data }),
 }
+
+// Settings API
+export type PracticeMode = 'zh-en' | 'en-en'
+
+export interface UserSettings {
+  userId: string
+  username: string
+  practiceMode: PracticeMode
+  dailyNewWordTarget: number
+}
+
+export const settingsApi = {
+  get: () => request<UserSettings>('/api/settings'),
+  update: (data: Partial<Omit<UserSettings, 'userId'>>) => request<UserSettings>('/api/settings', {
+    method: 'PUT',
+    body: data
+  })
+}

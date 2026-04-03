@@ -14,6 +14,7 @@ from models import (
     WordItemModel,
     ArticleItemModel,
     DailyStatModel,
+    UserSettingsModel,
 )
 from auth import hash_password, verify_password, create_access_token, get_current_user
 
@@ -157,10 +158,15 @@ def register(payload: UserRegister, db: Session = Depends(get_db)):
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="密码需要包含数字",
         )
-    if not any(c in "!@#$%^&*()_+-=[]{}|;:,.<>?/" for c in payload.password):
+    if not any(c in "!@#" for c in payload.password):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="密码需要包含特殊字符",
+            detail="密码需要包含特殊字符(!@#)",
+        )
+    if any(not c.isalnum() and c not in "!@#" for c in payload.password):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="密码只能包含字母、数字和特殊字符(!@#)",
         )
 
     existing = (
@@ -525,4 +531,87 @@ def add_event(
         reviewCount=row.reviewCount,
         dictationCount=row.dictationCount,
         wrongCount=row.wrongCount,
+    )
+
+
+# --- Settings Schemas ---
+
+
+class UserSettings(BaseModel):
+    userId: str
+    username: str
+    practiceMode: str = "zh-en"
+    dailyNewWordTarget: int = 20
+
+
+class UserSettingsUpdate(BaseModel):
+    username: Optional[str] = None
+    practiceMode: Optional[str] = None
+    dailyNewWordTarget: Optional[int] = None
+
+
+# --- Settings Endpoints ---
+
+
+@app.get("/api/settings", response_model=UserSettings)
+def get_settings(
+    current_user: UserModel = Depends(get_current_user), db: Session = Depends(get_db)
+):
+    settings = (
+        db.query(UserSettingsModel)
+        .filter(UserSettingsModel.userId == current_user.id)
+        .first()
+    )
+    if not settings:
+        settings = UserSettingsModel(
+            userId=current_user.id,
+            username=current_user.username,
+            practiceMode="zh-en",
+            dailyNewWordTarget=20,
+        )
+        db.add(settings)
+        db.commit()
+    return UserSettings(
+        userId=settings.userId,
+        username=settings.username,
+        practiceMode=settings.practiceMode,
+        dailyNewWordTarget=settings.dailyNewWordTarget,
+    )
+
+
+@app.put("/api/settings", response_model=UserSettings)
+def update_settings(
+    payload: UserSettingsUpdate,
+    current_user: UserModel = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    settings = (
+        db.query(UserSettingsModel)
+        .filter(UserSettingsModel.userId == current_user.id)
+        .first()
+    )
+    if not settings:
+        settings = UserSettingsModel(
+            userId=current_user.id,
+            username=current_user.username,
+            practiceMode="zh-en",
+            dailyNewWordTarget=20,
+        )
+        db.add(settings)
+
+    if payload.username is not None:
+        settings.username = payload.username
+    if payload.practiceMode is not None:
+        settings.practiceMode = payload.practiceMode
+    if payload.dailyNewWordTarget is not None:
+        settings.dailyNewWordTarget = payload.dailyNewWordTarget
+
+    settings.lastUpdateAt = datetime.now(timezone.utc)
+    db.commit()
+    db.refresh(settings)
+    return UserSettings(
+        userId=settings.userId,
+        username=settings.username,
+        practiceMode=settings.practiceMode,
+        dailyNewWordTarget=settings.dailyNewWordTarget,
     )

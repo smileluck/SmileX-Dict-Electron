@@ -7,11 +7,12 @@ import sessionReducer from '../features/session/sessionSlice'
 import dictsReducer from '../features/dicts/dictsSlice'
 import panelReducer from '../features/panel/panelSlice'
 import authReducer from '../features/auth/authSlice'
+import settingsReducer from '../features/settings/settingsSlice'
 
 const persistConfig = {
   key: 'smilex-dict',
   storage,
-  whitelist: ['words', 'dicts', 'panel', 'articles'], // Persist these reducers; auth uses localStorage directly
+  whitelist: ['words', 'dicts', 'panel', 'articles', 'settings'], // Persist these reducers; auth uses localStorage directly
 }
 
 const rootReducer = combineReducers({
@@ -21,6 +22,7 @@ const rootReducer = combineReducers({
   dicts: dictsReducer,
   panel: panelReducer,
   auth: authReducer,
+  settings: settingsReducer,
 })
 
 const persistedReducer = persistReducer(persistConfig, rootReducer)

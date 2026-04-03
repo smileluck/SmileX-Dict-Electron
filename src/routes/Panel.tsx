@@ -1,6 +1,6 @@
 import { useSelector, useDispatch } from 'react-redux'
 import type { RootState } from '../store'
-import { signIn, calcStreak } from '../features/panel/panelSlice'
+import { signIn, calcStreak, canSignInToday } from '../features/panel/panelSlice'
 import { useEffect, useState, useMemo } from 'react'
 import { statsApi } from '../services/api'
 import Loading from '../components/Loading'
@@ -54,17 +54,19 @@ export default function Panel() {
         }
       })
       .finally(() => setHistoryLoading(false))
-  }, [timeRange])
+  }, [timeRange, stats])
 
   // Calculate streak
   const streak = useMemo(() => calcStreak(signinDates), [signinDates])
+
+  // Check if user can sign in today (all pending words completed)
+  const canSignIn = useMemo(() => canSignInToday(words), [words])
 
   // Today's learning total
   const todayNew = remote?.newCount ?? todayStatStore?.newCount ?? 0
   const todayReview = remote?.reviewCount ?? todayStatStore?.reviewCount ?? 0
   const todayDictation = remote?.dictationCount ?? todayStatStore?.dictationCount ?? 0
   const todayWrong = remote?.wrongCount ?? todayStatStore?.wrongCount ?? 0
-  const todayTotal = todayNew + todayReview + todayDictation
 
   // Local overview from Redux words
   const overviewData = useMemo(() => {
@@ -125,7 +127,7 @@ export default function Panel() {
               <div className="flex flex-col items-end gap-1">
                 <span className="px-4 py-2 rounded-lg bg-green-100 text-green-700 font-medium text-sm">✓ 已签到</span>
               </div>
-            ) : todayTotal > 0 ? (
+            ) : canSignIn ? (
               <button
                 className="px-4 py-2 rounded-lg bg-brand-500 text-white hover:bg-brand-600 transition-colors font-medium text-sm"
                 onClick={() => dispatch(signIn())}
@@ -135,7 +137,7 @@ export default function Panel() {
             ) : (
               <div className="flex flex-col items-end gap-1">
                 <span className="px-4 py-2 rounded-lg bg-gray-100 text-gray-400 font-medium text-sm cursor-not-allowed">签到</span>
-                <span className="text-xs text-gray-400">请先完成学习后再签到</span>
+                <span className="text-xs text-gray-400">请先完成所有待学习单词</span>
               </div>
             )}
           </div>
@@ -332,6 +334,64 @@ export default function Panel() {
               style={{ width: `${overviewData.masteryRate}%` }}
             />
           </div>
+        </div>
+      </div>
+
+      {/* SM2 Memory Analytics */}
+      <div className="rounded-xl border bg-white p-5">
+        <h3 className="font-semibold mb-3">SM2 记忆分析</h3>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <div className="rounded-lg bg-purple-50 p-3 text-center">
+            <div className="text-2xl font-bold text-purple-600">
+              {words.length > 0 ? (words.reduce((sum, w) => sum + w.efactor, 0) / words.length).toFixed(2) : '—'}
+            </div>
+            <div className="text-xs text-gray-500 mt-1">平均记忆因子</div>
+          </div>
+          <div className="rounded-lg bg-indigo-50 p-3 text-center">
+            <div className="text-2xl font-bold text-indigo-600">
+              {words.length > 0 ? Math.round(words.reduce((sum, w) => sum + w.responseTime, 0) / words.length) : '—'}
+            </div>
+            <div className="text-xs text-gray-500 mt-1">平均响应(ms)</div>
+          </div>
+          <div className="rounded-lg bg-cyan-50 p-3 text-center">
+            <div className="text-2xl font-bold text-cyan-600">
+              {words.length > 0 ? (words.reduce((sum, w) => sum + w.averageQuality, 0) / words.length).toFixed(1) : '—'}
+            </div>
+            <div className="text-xs text-gray-500 mt-1">平均质量分</div>
+          </div>
+          <div className="rounded-lg bg-teal-50 p-3 text-center">
+            <div className="text-2xl font-bold text-teal-600">
+              {words.filter(w => w.fatigueFactor > 0.6).length}
+            </div>
+            <div className="text-xs text-gray-500 mt-1">疲劳词数</div>
+          </div>
+        </div>
+
+        {/* Difficulty distribution */}
+        <div className="mt-4">
+          <div className="text-sm text-gray-600 mb-2">难度分布</div>
+          {(() => {
+            const dist = [1, 2, 3, 4, 5].map(level => ({
+              level,
+              count: words.filter(w => w.difficulty === level).length,
+              label: ['', '基础', '入门', '中等', '困难', '高级'][level],
+              color: ['', 'bg-green-400', 'bg-green-500', 'bg-yellow-400', 'bg-orange-400', 'bg-red-400'][level],
+            }))
+            const maxCount = Math.max(...dist.map(d => d.count), 1)
+            return (
+              <div className="space-y-1.5">
+                {dist.map(d => (
+                  <div key={d.level} className="flex items-center gap-2">
+                    <span className="text-xs text-gray-500 w-10">{d.label}</span>
+                    <div className="flex-1 bg-gray-100 rounded-full h-2.5">
+                      <div className={`h-2.5 rounded-full ${d.color}`} style={{ width: `${(d.count / maxCount) * 100}%` }} />
+                    </div>
+                    <span className="text-xs text-gray-500 w-6 text-right">{d.count}</span>
+                  </div>
+                ))}
+              </div>
+            )
+          })()}
         </div>
       </div>
 

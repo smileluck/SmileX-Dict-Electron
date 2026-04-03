@@ -1,9 +1,10 @@
 import { useSelector, useDispatch } from 'react-redux'
 import type { RootState } from '../store'
-import { useMemo, useState, useCallback } from 'react'
+import { useMemo, useState, useCallback, useEffect } from 'react'
 import { reviewWord, toggleCollect, markWrong } from '../features/words/wordsSlice'
 import Icon from '../components/Icon'
 import { API_BASE } from '../config'
+import { sortWordsByPriority, getLearningQueue, getFatigueWarning, getLearningSuggestion } from '../utils/priorityQueue'
 
 type Mode = 'type' | 'confirm' | 'zh-en' | 'en-en'
 
@@ -11,8 +12,17 @@ export default function PracticeWords() {
   const dispatch = useDispatch()
   const words = useSelector((s: RootState) => s.words.items)
   const dicts = useSelector((s: RootState) => s.dicts)
+  const settings = useSelector((s: RootState) => s.settings.settings)
   const [mode, setMode] = useState<Mode>('type')
   const [selectedDictId, setSelectedDictId] = useState<string | undefined>(dicts.activeId)
+
+  useEffect(() => {
+    if (settings?.practiceMode === 'zh-en') {
+      setMode('zh-en')
+    } else if (settings?.practiceMode === 'en-en') {
+      setMode('en-en')
+    }
+  }, [settings?.practiceMode])
   const [index, setIndex] = useState(0)
   const [input, setInput] = useState('')
   const [result, setResult] = useState<'correct' | 'wrong' | undefined>(undefined)
@@ -28,7 +38,6 @@ export default function PracticeWords() {
 
   // Filter words by selected dictionary
   const queue = useMemo(() => {
-    const today = new Date().toISOString().split('T')[0]
     let filtered = words
 
     if (selectedDictId) {
@@ -43,10 +52,10 @@ export default function PracticeWords() {
       }
     }
 
-    return filtered.filter(w =>
-      w.status !== 'mastered' &&
-      w.nextReviewDate.split('T')[0] <= today
-    )
+    // Use enhanced learning queue with intelligent sorting
+    const pendingQueue = getLearningQueue(filtered)
+    
+    return pendingQueue
   }, [words, selectedDictId])
 
   const current = queue[index] ?? queue[0]
@@ -106,12 +115,15 @@ export default function PracticeWords() {
   const submitType = () => {
     if (!current) return
 
+    const startTime = performance.now()
     const wasNew = current.status === 'new'
     const userInput = input.trim().toLowerCase()
     const correctTerm = current.term.toLowerCase()
     const ok = userInput === correctTerm
 
     let quality: number
+    const responseTime = performance.now() - startTime
+
     if (!ok) {
       const similarity = calculateSimilarity(userInput, correctTerm)
       if (similarity < 0.3) {
@@ -122,10 +134,17 @@ export default function PracticeWords() {
         quality = 2
       }
     } else {
+      // 完全正确的拼写给予更高质量评分
       quality = 4
     }
 
-    dispatch(reviewWord({ wordId: current.id, quality }))
+    // 使用增强的reviewWord函数，包含响应时间和学习上下文
+    dispatch(reviewWord({ 
+      wordId: current.id, 
+      quality,
+      responseTime: Math.round(responseTime),
+      learningContext: 'typing'
+    }))
     sendEvent('dictation')
 
     if (wasNew && ok) {
@@ -141,14 +160,30 @@ export default function PracticeWords() {
   const submitZhEn = () => {
     if (!current) return
 
+    const startTime = performance.now()
     const wasNew = current.status === 'new'
     const userInput = input.trim().toLowerCase()
     const correctTerm = current.term.toLowerCase()
     const ok = userInput === correctTerm
 
-    const quality = ok ? 4 : 1
+    let quality: number
+    const responseTime = performance.now() - startTime
 
-    dispatch(reviewWord({ wordId: current.id, quality }))
+    if (ok) {
+      // 快速正确给予更高评分
+      quality = responseTime < 3000 ? 5 : 4
+    } else {
+      // 考虑相似度
+      const similarity = calculateSimilarity(userInput, correctTerm)
+      quality = similarity > 0.8 ? 2 : similarity > 0.5 ? 1 : 0
+    }
+
+    dispatch(reviewWord({ 
+      wordId: current.id, 
+      quality,
+      responseTime: Math.round(responseTime),
+      learningContext: 'recall'
+    }))
     sendEvent('review')
 
     if (wasNew && ok) {
@@ -167,9 +202,14 @@ export default function PracticeWords() {
     const selected = options[optionIdx]
     const ok = selected === current.meaning
     const wasNew = current.status === 'new'
-    const quality = ok ? 4 : 1
+    
+    let quality = ok ? 4 : 1
 
-    dispatch(reviewWord({ wordId: current.id, quality }))
+    dispatch(reviewWord({ 
+      wordId: current.id, 
+      quality,
+      learningContext: 'multiple_choice'
+    }))
     sendEvent('review')
 
     if (wasNew && ok) {
@@ -250,6 +290,10 @@ export default function PracticeWords() {
 
   const isCollected = current?.status === 'collected'
   const isWrong = current?.status === 'wrong'
+  
+  // 获取学习建议和疲劳度警告
+  const fatigueWarning = current ? getFatigueWarning(current) : null
+  const learningSuggestion = current ? getLearningSuggestion(current) : null
 
   const modeButtons: { key: Mode; label: string }[] = [
     { key: 'type', label: '打字拼写' },
@@ -314,6 +358,32 @@ export default function PracticeWords() {
         </div>
         <span className="text-sm text-gray-500">{index + 1} / {queue.length}</span>
       </div>
+
+      {/* Learning suggestions and fatigue warnings */}
+      {current && (
+        <div className="space-y-2">
+          {fatigueWarning && fatigueWarning.isFatigued && (
+            <div className={`rounded-lg p-3 text-sm ${
+              fatigueWarning.level === 'high' ? 'bg-red-50 text-red-700 border border-red-200' :
+              fatigueWarning.level === 'medium' ? 'bg-orange-50 text-orange-700 border border-orange-200' :
+              'bg-yellow-50 text-yellow-700 border border-yellow-200'
+            }`}>
+              <div className="flex items-center gap-2">
+                <span>⚠️</span>
+                <span>{fatigueWarning.message}</span>
+              </div>
+            </div>
+          )}
+          {learningSuggestion && (
+            <div className="rounded-lg bg-blue-50 border border-blue-200 p-3 text-sm text-blue-700">
+              <div className="flex items-center gap-2">
+                <span>💡</span>
+                <span>{learningSuggestion}</span>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Practice card */}
       <div className="rounded-xl border bg-white p-4">

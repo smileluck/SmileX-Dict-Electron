@@ -14,6 +14,8 @@ import Collections from './routes/Collections'
 import WrongWords from './routes/WrongWords'
 import Mastered from './routes/Mastered'
 import Login from './routes/Login'
+import Settings from './routes/Settings'
+import VocabularyAnalysis from './routes/VocabularyAnalysis'
 import ErrorBoundary from './components/ErrorBoundary'
 import { ToastProvider } from './components/Toast'
 import { clearAuth } from './features/auth/authSlice'
@@ -61,10 +63,12 @@ function App() {
   const moreItems = [
     { to: '/about', label: '关于' },
     { to: '/study-guide', label: '学习指南' },
+    { to: '/vocab-analysis', label: '英语专业学习' },
   ]
 
   const userMenuItems = [
     { to: '/panel', label: '面板', action: () => {} },
+    { to: '/settings', label: '个人设置', action: () => {} },
     { label: '登出', action: handleLogout },
   ]
 
@@ -313,6 +317,8 @@ function App() {
               <Route path="/collections" element={isAuthenticated ? <Collections /> : <Navigate to="/login" state={{ from: '/collections' }} replace />} />
               <Route path="/wrong-words" element={isAuthenticated ? <WrongWords /> : <Navigate to="/login" state={{ from: '/wrong-words' }} replace />} />
               <Route path="/mastered" element={isAuthenticated ? <Mastered /> : <Navigate to="/login" state={{ from: '/mastered' }} replace />} />
+              <Route path="/settings" element={isAuthenticated ? <Settings /> : <Navigate to="/login" state={{ from: '/settings' }} replace />} />
+              <Route path="/vocab-analysis" element={isAuthenticated ? <VocabularyAnalysis /> : <Navigate to="/login" state={{ from: '/vocab-analysis' }} replace />} />
               <Route path="/about" element={<About />} />
               <Route path="/study-guide" element={<StudyGuide />} />
               <Route path="/login" element={<Login />} />

@@ -33,10 +33,11 @@ export default function Login() {
     if (!/[0-9]/.test(pwd)) {
       return { valid: false, message: '密码需要包含数字' }
     }
-    const specialChars = '!@#$%^&*()_+-=[]{}|;:,.<>/?'
-    const hasSpecialChar = new RegExp(`[${specialChars}]`)
-    if (!hasSpecialChar.test(pwd)) {
-      return { valid: false, message: '密码需要包含特殊字符' }
+    if (!/[!@#]/.test(pwd)) {
+      return { valid: false, message: '密码需要包含特殊字符(!@#)' }
+    }
+    if (/[^a-zA-Z0-9!@#]/.test(pwd)) {
+      return { valid: false, message: '密码只能包含字母、数字和特殊字符(!@#)' }
     }
     return { valid: true }
   }
@@ -52,9 +53,7 @@ export default function Login() {
     if (/[A-Z]/.test(pwd)) score += 20
     if (/[a-z]/.test(pwd)) score += 20
     if (/[0-9]/.test(pwd)) score += 20
-    const specialChars = '!@#$%^&*()_+-=[]{}|;:,.<>/?'
-    const hasSpecialChar = new RegExp(`[${specialChars}]`)
-    if (hasSpecialChar.test(pwd)) score += 20
+    if (/[!@#]/.test(pwd)) score += 20
 
     if (score < 40) {
       return { score, label: '弱', color: 'bg-red-500' }
@@ -74,7 +73,7 @@ export default function Login() {
     { id: 'upper', label: '大写字母', check: /[A-Z]/.test(password) },
     { id: 'lower', label: '小写字母', check: /[a-z]/.test(password) },
     { id: 'number', label: '数字', check: /[0-9]/.test(password) },
-    { id: 'special', label: '特殊字符', check: /[!@#$%^&*()_+\-=\\[\]{};':"\\|,.<>\\/?]/.test(password) },
+    { id: 'special', label: '特殊字符(!@#)', check: /[!@#]/.test(password) },
   ]
 
   const handleSubmit = async (e: React.FormEvent) => {
