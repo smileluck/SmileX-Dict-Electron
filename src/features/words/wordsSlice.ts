@@ -117,10 +117,11 @@ const wordsSlice = createSlice({
       }
 
       if (quality < 3) {
-        // 回答错误或困难，重置记忆状态
-        word.repetitions = 0
+        word.repetitions = Math.max(0, word.repetitions - 1)
         word.interval = 0
-        word.status = 'wrong'
+        if (quality < 2) {
+          word.status = 'wrong'
+        }
         
         // 根据重要性调整记忆因子降低程度
         const difficultyPenalty = word.importance === 3 ? 0.15 : word.importance === 2 ? 0.1 : 0.05
@@ -160,7 +161,7 @@ const wordsSlice = createSlice({
         
         // 计算新的记忆因子
         word.efactor = Math.max(efactorMin, Math.min(efactorMax, 
-          word.efactor + (qualityMultiplier - (6 - quality) * (0.08 + (6 - quality) * 0.02))) * contextMultiplier)
+          (word.efactor + (qualityMultiplier - (6 - quality) * (0.08 + (6 - quality) * 0.02))) * contextMultiplier))
         
         word.repetitions += 1
         

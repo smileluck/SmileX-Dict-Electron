@@ -169,6 +169,7 @@ export interface ArticleItem {
 export const articlesApi = {
   list: () => request<ArticleItem[]>('/api/articles'),
   create: (data: Omit<ArticleItem, 'id'>) => request<ArticleItem>('/api/articles', { method: 'POST', body: data }),
+  delete: (id: string) => request<void>(`/api/articles/${id}`, { method: 'DELETE' }),
 }
 
 // Dicts API
@@ -182,6 +183,8 @@ export interface DictItem {
 export const dictsApi = {
   list: () => request<DictItem[]>('/api/dicts'),
   create: (data: { name: string; wordCount?: number }) => request<DictItem>('/api/dicts', { method: 'POST', body: data }),
+  update: (id: string, data: { name?: string }) => request<DictItem>(`/api/dicts/${id}`, { method: 'PUT', body: data }),
+  delete: (id: string) => request<void>(`/api/dicts/${id}`, { method: 'DELETE' }),
 }
 
 // Words API
@@ -200,6 +203,10 @@ export interface WordItem {
 export const wordsApi = {
   list: (dictId?: string) => request<WordItem[]>('/api/words' + (dictId ? `?dictId=${dictId}` : '')),
   create: (data: WordItem) => request<WordItem>('/api/words', { method: 'POST', body: data }),
+  update: (id: string, data: Partial<WordItem>) => request<WordItem>(`/api/words/${id}`, { method: 'PUT', body: data }),
+  delete: (id: string) => request<void>(`/api/words/${id}`, { method: 'DELETE' }),
+  bulkCreate: (words: WordItem[]) => request<WordItem[]>('/api/words/bulk', { method: 'POST', body: words }),
+  search: (query: string) => request<WordItem[]>(`/api/words/search?q=${encodeURIComponent(query)}`),
 }
 
 // Settings API
@@ -218,4 +225,9 @@ export const settingsApi = {
     method: 'PUT',
     body: data
   })
+}
+
+export const dataApi = {
+  exportAll: () => request<Record<string, unknown>>('/api/export'),
+  importAll: (data: Record<string, unknown>) => request<void>('/api/import', { method: 'POST', body: data }),
 }

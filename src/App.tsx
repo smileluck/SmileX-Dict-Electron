@@ -18,6 +18,7 @@ import Settings from './routes/Settings'
 import VocabularyAnalysis from './routes/VocabularyAnalysis'
 import ErrorBoundary from './components/ErrorBoundary'
 import { ToastProvider } from './components/Toast'
+import SearchDialog from './components/SearchDialog'
 import { clearAuth } from './features/auth/authSlice'
 import type { RootState } from './store'
 import { useNavigate } from 'react-router-dom'
@@ -28,6 +29,7 @@ function App() {
   const [mobileMoreMenuOpen, setMobileMoreMenuOpen] = useState(false)
   const [userMenuOpen, setUserMenuOpen] = useState(false)
   const [mobileUserMenuOpen, setMobileUserMenuOpen] = useState(false)
+  const [searchOpen, setSearchOpen] = useState(false)
   const isAuthenticated = useSelector((state: RootState) => state.auth.isAuthenticated)
   const user = useSelector((state: RootState) => state.auth.user)
   const dispatch = useDispatch()
@@ -54,16 +56,27 @@ function App() {
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
 
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+        e.preventDefault()
+        setSearchOpen(true)
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [])
+
   const navLinks = [
     { to: '/', label: '主页', public: true },
     { to: '/dicts', label: '词典', public: true },
     { to: '/library', label: '书籍', public: true },
+    { to: '/vocab-analysis', label: '英语专业学习', public: true },
   ]
 
   const moreItems = [
     { to: '/about', label: '关于' },
     { to: '/study-guide', label: '学习指南' },
-    { to: '/vocab-analysis', label: '英语专业学习' },
   ]
 
   const userMenuItems = [
@@ -94,6 +107,14 @@ function App() {
                   {link.label}
                 </NavLink>
               ))}
+              <button
+                onClick={() => setSearchOpen(true)}
+                className="px-2 py-1 rounded transition-colors flex items-center gap-1 text-gray-500 hover:bg-gray-100"
+                title="搜索 (Ctrl+K)"
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+                <span className="text-xs">Ctrl+K</span>
+              </button>
               <div className="relative" ref={moreMenuRef}>
                 <button
                   onClick={() => setMoreMenuOpen(!moreMenuOpen)}
@@ -326,6 +347,7 @@ function App() {
           </ErrorBoundary>
         </main>
       </div>
+      <SearchDialog open={searchOpen} onClose={() => setSearchOpen(false)} />
     </ToastProvider>
   )
 }

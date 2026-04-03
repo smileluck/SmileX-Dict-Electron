@@ -1,7 +1,6 @@
 import { useState, useMemo } from 'react'
 import { useSelector } from 'react-redux'
 import type { RootState } from '../../store'
-import type { WordItem } from '../../features/words/wordsSlice'
 import Icon from '../Icon'
 
 interface WritingCollection {

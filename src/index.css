@@ -77,3 +77,77 @@ input:focus, textarea:focus {
   from { opacity: 0; transform: translateY(4px); }
   to { opacity: 1; transform: translateY(0); }
 }
+
+.dark {
+  --tw-bg-opacity: 1;
+  color-scheme: dark;
+}
+
+.dark body, .dark .min-h-screen {
+  background-color: #111827;
+  color: #f3f4f6;
+}
+
+.dark .bg-white {
+  background-color: #1f2937;
+}
+
+.dark .bg-gray-50 {
+  background-color: #111827;
+}
+
+.dark .bg-gray-100 {
+  background-color: #1f2937;
+}
+
+.dark .text-gray-900 {
+  color: #f3f4f6;
+}
+
+.dark .text-gray-800 {
+  color: #e5e7eb;
+}
+
+.dark .text-gray-700 {
+  color: #d1d5db;
+}
+
+.dark .text-gray-600 {
+  color: #9ca3af;
+}
+
+.dark .text-gray-500 {
+  color: #9ca3af;
+}
+
+.dark .text-gray-400 {
+  color: #6b7280;
+}
+
+.dark .border {
+  border-color: #374151;
+}
+
+.dark .border-gray-200 {
+  border-color: #374151;
+}
+
+.dark .border-b {
+  border-color: #374151;
+}
+
+.dark header {
+  background-color: #1f2937;
+  border-color: #374151;
+}
+
+.dark input, .dark select, .dark textarea {
+  background-color: #1f2937;
+  border-color: #4b5563;
+  color: #f3f4f6;
+}
+
+.dark .bg-brand-50 { background-color: rgba(58, 147, 245, 0.1); }
+.dark .bg-brand-100 { background-color: rgba(58, 147, 245, 0.15); }
+
+.dark .shadow-sm { box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.3); }

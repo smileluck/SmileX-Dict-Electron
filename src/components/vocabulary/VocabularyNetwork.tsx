@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react'
+import { useState, useMemo } from 'react'
 import { useSelector } from 'react-redux'
 import type { RootState } from '../../store'
 import type { WordItem } from '../../features/words/wordsSlice'
@@ -185,7 +185,7 @@ export default function VocabularyNetwork() {
                 : 'text-gray-500 hover:text-gray-700'
             }`}
           >
-            <Icon name={tab.icon} size={14} />
+            <Icon name={tab.icon as any} size={14} />
             {tab.label}
           </button>
         ))}
@@ -312,7 +312,7 @@ export default function VocabularyNetwork() {
           <h4 className="font-medium text-gray-700">错词模式分析</h4>
           {errorPatterns.length === 0 ? (
             <div className="text-center text-gray-400 py-8">
-              <Icon name="check-circle" size={32} className="mx-auto mb-2 text-green-400" />
+              <Icon name="check" size={32} className="mx-auto mb-2 text-green-400" />
               <p>暂无错词记录，继续保持！</p>
             </div>
           ) : (

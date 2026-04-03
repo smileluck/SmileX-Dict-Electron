@@ -1,13 +1,15 @@
 import uuid
-from datetime import date, timedelta
+import json
+import os
+from datetime import date, datetime, timedelta, timezone
 from fastapi import FastAPI, Depends, HTTPException, status, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 from typing import List, Optional
 from sqlalchemy.orm import Session
-from sqlalchemy import text
-from db import engine, SessionLocal, Base
+from sqlalchemy import or_, text
+from db import engine, SessionLocal, Base, get_db
 from models import (
     UserModel,
     DictItemModel,
@@ -20,22 +22,21 @@ from auth import hash_password, verify_password, create_access_token, get_curren
 
 app = FastAPI(title="SmileX Dict Admin")
 
+ALLOWED_ORIGINS = json.loads(os.getenv("ALLOWED_ORIGINS", '["*"]'))
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=ALLOWED_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# Create tables if they don't exist
 Base.metadata.create_all(bind=engine)
 
 
-# Exception handlers for better error messages
 @app.exception_handler(HTTPException)
 async def http_exception_handler(request: Request, exc: HTTPException):
-    """Convert HTTPException to user-friendly Chinese messages."""
     error_messages = {
         400: "请求参数错误",
         401: "用户名或密码错误",
@@ -45,10 +46,8 @@ async def http_exception_handler(request: Request, exc: HTTPException):
         500: "服务器内部错误",
     }
 
-    # Use specific detail if available, otherwise use generic message
     detail = exc.detail
     if isinstance(detail, str):
-        # Translate common error messages
         translations = {
             "Username already registered": "用户名已被注册",
             "Incorrect username or password": "用户名或密码错误",
@@ -66,10 +65,8 @@ async def http_exception_handler(request: Request, exc: HTTPException):
 
 @app.exception_handler(Exception)
 async def general_exception_handler(request: Request, exc: Exception):
-    """Handle all other exceptions."""
     import traceback
 
-    # Log the full exception for debugging
     print(f"Unhandled exception: {str(exc)}")
     print(traceback.format_exc())
 
@@ -79,7 +76,6 @@ async def general_exception_handler(request: Request, exc: Exception):
     )
 
 
-# Migration: add wrongCount column to daily_stats if missing
 with engine.connect() as conn:
     result = conn.execute(text("PRAGMA table_info(daily_stats)"))
     columns = [row[1] for row in result]
@@ -88,14 +84,6 @@ with engine.connect() as conn:
             text("ALTER TABLE daily_stats ADD COLUMN wrongCount INTEGER DEFAULT 0")
         )
         conn.commit()
-
-
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
 
 
 # --- Auth Schemas ---
@@ -109,16 +97,6 @@ class UserRegister(BaseModel):
 class UserLogin(BaseModel):
     username: str = Field(min_length=3, max_length=32)
     password: str = Field(min_length=8, max_length=64)
-
-
-class UserLogin(BaseModel):
-    username: str = Field(min_length=3, max_length=32)
-    password: str = Field(min_length=6, max_length=64)
-
-
-class UserLogin(BaseModel):
-    username: str
-    password: str
 
 
 class UserOut(BaseModel):
@@ -137,7 +115,6 @@ class AuthResponse(BaseModel):
 
 @app.post("/api/auth/register", response_model=AuthResponse)
 def register(payload: UserRegister, db: Session = Depends(get_db)):
-    # Validate password strength
     if len(payload.password) < 8:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -225,6 +202,10 @@ class DictCreate(BaseModel):
     wordCount: int = 0
 
 
+class DictUpdate(BaseModel):
+    name: Optional[str] = None
+
+
 # --- Dict Endpoints ---
 
 
@@ -262,6 +243,50 @@ def create_dict(
     )
 
 
+@app.put("/api/dicts/{dict_id}", response_model=DictItem)
+def update_dict(
+    dict_id: str,
+    payload: DictUpdate,
+    current_user: UserModel = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    item = (
+        db.query(DictItemModel)
+        .filter(DictItemModel.id == dict_id, DictItemModel.userId == current_user.id)
+        .first()
+    )
+    if not item:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="词典不存在")
+    if payload.name is not None:
+        item.name = payload.name
+    db.commit()
+    db.refresh(item)
+    return DictItem(
+        id=item.id, name=item.name, wordCount=item.wordCount, source=item.source
+    )
+
+
+@app.delete("/api/dicts/{dict_id}")
+def delete_dict(
+    dict_id: str,
+    current_user: UserModel = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    item = (
+        db.query(DictItemModel)
+        .filter(DictItemModel.id == dict_id, DictItemModel.userId == current_user.id)
+        .first()
+    )
+    if not item:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="词典不存在")
+    db.query(WordItemModel).filter(
+        WordItemModel.dictId == dict_id, WordItemModel.userId == current_user.id
+    ).delete()
+    db.delete(item)
+    db.commit()
+    return {"detail": "已删除"}
+
+
 # --- Word Schemas ---
 
 
@@ -277,6 +302,37 @@ class WordItem(BaseModel):
     dictId: Optional[str] = None
 
 
+class WordUpdate(BaseModel):
+    term: Optional[str] = None
+    ipa: Optional[str] = None
+    meaning: Optional[str] = None
+    example: Optional[str] = None
+    synonyms: Optional[List[str]] = None
+    synonymsNote: Optional[str] = None
+    status: Optional[str] = None
+    dictId: Optional[str] = None
+
+
+def _word_item_from_model(r: WordItemModel) -> WordItem:
+    syn = []
+    if r.synonyms:
+        try:
+            syn = r.synonyms.split(",")
+        except Exception:
+            syn = []
+    return WordItem(
+        id=r.id,
+        term=r.term,
+        ipa=r.ipa,
+        meaning=r.meaning,
+        example=r.example,
+        synonyms=syn,
+        synonymsNote=r.synonymsNote,
+        status=r.status,
+        dictId=r.dictId,
+    )
+
+
 # --- Word Endpoints ---
 
 
@@ -290,28 +346,7 @@ def list_words(
     if dictId:
         q = q.filter(WordItemModel.dictId == dictId)
     rows = q.all()
-    res = []
-    for r in rows:
-        syn = []
-        if r.synonyms:
-            try:
-                syn = r.synonyms.split(",")
-            except:
-                syn = []
-        res.append(
-            WordItem(
-                id=r.id,
-                term=r.term,
-                ipa=r.ipa,
-                meaning=r.meaning,
-                example=r.example,
-                synonyms=syn,
-                synonymsNote=r.synonymsNote,
-                status=r.status,
-                dictId=r.dictId,
-            )
-        )
-    return res
+    return [_word_item_from_model(r) for r in rows]
 
 
 @app.post("/api/words", response_model=WordItem)
@@ -336,6 +371,107 @@ def create_word(
     db.add(item)
     db.commit()
     return word
+
+
+@app.put("/api/words/{word_id}", response_model=WordItem)
+def update_word(
+    word_id: str,
+    payload: WordUpdate,
+    current_user: UserModel = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    item = (
+        db.query(WordItemModel)
+        .filter(WordItemModel.id == word_id, WordItemModel.userId == current_user.id)
+        .first()
+    )
+    if not item:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="单词不存在")
+    if payload.term is not None:
+        item.term = payload.term
+    if payload.ipa is not None:
+        item.ipa = payload.ipa
+    if payload.meaning is not None:
+        item.meaning = payload.meaning
+    if payload.example is not None:
+        item.example = payload.example
+    if payload.synonyms is not None:
+        item.synonyms = ",".join(payload.synonyms)
+    if payload.synonymsNote is not None:
+        item.synonymsNote = payload.synonymsNote
+    if payload.status is not None:
+        item.status = payload.status
+    if payload.dictId is not None:
+        item.dictId = payload.dictId
+    db.commit()
+    db.refresh(item)
+    return _word_item_from_model(item)
+
+
+@app.delete("/api/words/{word_id}")
+def delete_word(
+    word_id: str,
+    current_user: UserModel = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    item = (
+        db.query(WordItemModel)
+        .filter(WordItemModel.id == word_id, WordItemModel.userId == current_user.id)
+        .first()
+    )
+    if not item:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="单词不存在")
+    db.delete(item)
+    db.commit()
+    return {"detail": "已删除"}
+
+
+@app.get("/api/words/search", response_model=List[WordItem])
+def search_words(
+    q: str = Query(..., min_length=1),
+    current_user: UserModel = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    pattern = f"%{q}%"
+    rows = (
+        db.query(WordItemModel)
+        .filter(
+            WordItemModel.userId == current_user.id,
+            or_(
+                WordItemModel.term.ilike(pattern),
+                WordItemModel.meaning.ilike(pattern),
+            ),
+        )
+        .all()
+    )
+    return [_word_item_from_model(r) for r in rows]
+
+
+@app.post("/api/words/bulk", response_model=List[WordItem])
+def bulk_create_words(
+    words: List[WordItem],
+    current_user: UserModel = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    result = []
+    for word in words:
+        synonyms = ",".join(word.synonyms or [])
+        item = WordItemModel(
+            id=word.id,
+            term=word.term,
+            ipa=word.ipa,
+            meaning=word.meaning,
+            example=word.example,
+            synonyms=synonyms,
+            synonymsNote=word.synonymsNote,
+            status=word.status,
+            dictId=word.dictId,
+            userId=current_user.id,
+        )
+        db.add(item)
+        result.append(word)
+    db.commit()
+    return result
 
 
 # --- Article Schemas ---
@@ -408,6 +544,27 @@ def create_article(
         contentZh=item.contentZh,
         type=item.type,
     )
+
+
+@app.delete("/api/articles/{article_id}")
+def delete_article(
+    article_id: str,
+    current_user: UserModel = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    item = (
+        db.query(ArticleItemModel)
+        .filter(
+            ArticleItemModel.id == article_id,
+            ArticleItemModel.userId == current_user.id,
+        )
+        .first()
+    )
+    if not item:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="文章不存在")
+    db.delete(item)
+    db.commit()
+    return {"detail": "已删除"}
 
 
 # --- Stats Schemas ---
@@ -615,3 +772,207 @@ def update_settings(
         practiceMode=settings.practiceMode,
         dailyNewWordTarget=settings.dailyNewWordTarget,
     )
+
+
+# --- Health Check ---
+
+
+@app.get("/api/health")
+def health_check():
+    return {"status": "ok"}
+
+
+# --- Data Export/Import ---
+
+
+class ExportData(BaseModel):
+    dicts: List[DictItem]
+    words: List[WordItem]
+    articles: List[ArticleItem]
+    stats: List[StatItem]
+    settings: Optional[UserSettings] = None
+
+
+@app.get("/api/export", response_model=ExportData)
+def export_data(
+    current_user: UserModel = Depends(get_current_user), db: Session = Depends(get_db)
+):
+    dict_rows = (
+        db.query(DictItemModel).filter(DictItemModel.userId == current_user.id).all()
+    )
+    word_rows = (
+        db.query(WordItemModel).filter(WordItemModel.userId == current_user.id).all()
+    )
+    article_rows = (
+        db.query(ArticleItemModel)
+        .filter(ArticleItemModel.userId == current_user.id)
+        .all()
+    )
+    stat_rows = (
+        db.query(DailyStatModel).filter(DailyStatModel.userId == current_user.id).all()
+    )
+    settings = (
+        db.query(UserSettingsModel)
+        .filter(UserSettingsModel.userId == current_user.id)
+        .first()
+    )
+
+    return ExportData(
+        dicts=[
+            DictItem(id=r.id, name=r.name, wordCount=r.wordCount, source=r.source)
+            for r in dict_rows
+        ],
+        words=[_word_item_from_model(r) for r in word_rows],
+        articles=[
+            ArticleItem(
+                id=r.id,
+                title=r.title,
+                content=r.content,
+                contentZh=r.contentZh,
+                type=r.type,
+            )
+            for r in article_rows
+        ],
+        stats=[
+            StatItem(
+                date=r.date,
+                newCount=r.newCount,
+                reviewCount=r.reviewCount,
+                dictationCount=r.dictationCount,
+                wrongCount=r.wrongCount,
+            )
+            for r in stat_rows
+        ],
+        settings=(
+            UserSettings(
+                userId=settings.userId,
+                username=settings.username,
+                practiceMode=settings.practiceMode,
+                dailyNewWordTarget=settings.dailyNewWordTarget,
+            )
+            if settings
+            else None
+        ),
+    )
+
+
+@app.post("/api/import")
+def import_data(
+    payload: ExportData,
+    current_user: UserModel = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    for d in payload.dicts:
+        existing = db.query(DictItemModel).filter(DictItemModel.id == d.id).first()
+        if existing:
+            existing.name = d.name
+            existing.wordCount = d.wordCount
+            existing.source = d.source
+        else:
+            db.add(
+                DictItemModel(
+                    id=d.id,
+                    name=d.name,
+                    wordCount=d.wordCount,
+                    source=d.source,
+                    userId=current_user.id,
+                )
+            )
+
+    for w in payload.words:
+        existing = db.query(WordItemModel).filter(WordItemModel.id == w.id).first()
+        synonyms = ",".join(w.synonyms or [])
+        if existing:
+            existing.term = w.term
+            existing.ipa = w.ipa
+            existing.meaning = w.meaning
+            existing.example = w.example
+            existing.synonyms = synonyms
+            existing.synonymsNote = w.synonymsNote
+            existing.status = w.status
+            existing.dictId = w.dictId
+        else:
+            db.add(
+                WordItemModel(
+                    id=w.id,
+                    term=w.term,
+                    ipa=w.ipa,
+                    meaning=w.meaning,
+                    example=w.example,
+                    synonyms=synonyms,
+                    synonymsNote=w.synonymsNote,
+                    status=w.status,
+                    dictId=w.dictId,
+                    userId=current_user.id,
+                )
+            )
+
+    for a in payload.articles:
+        existing = (
+            db.query(ArticleItemModel).filter(ArticleItemModel.id == a.id).first()
+        )
+        if existing:
+            existing.title = a.title
+            existing.content = a.content
+            existing.contentZh = a.contentZh
+            existing.type = a.type
+        else:
+            db.add(
+                ArticleItemModel(
+                    id=a.id,
+                    title=a.title,
+                    content=a.content,
+                    contentZh=a.contentZh,
+                    type=a.type,
+                    userId=current_user.id,
+                )
+            )
+
+    for s in payload.stats:
+        existing = (
+            db.query(DailyStatModel)
+            .filter(
+                DailyStatModel.date == s.date,
+                DailyStatModel.userId == current_user.id,
+            )
+            .first()
+        )
+        if existing:
+            existing.newCount = s.newCount
+            existing.reviewCount = s.reviewCount
+            existing.dictationCount = s.dictationCount
+            existing.wrongCount = s.wrongCount
+        else:
+            db.add(
+                DailyStatModel(
+                    date=s.date,
+                    userId=current_user.id,
+                    newCount=s.newCount,
+                    reviewCount=s.reviewCount,
+                    dictationCount=s.dictationCount,
+                    wrongCount=s.wrongCount,
+                )
+            )
+
+    if payload.settings:
+        settings = (
+            db.query(UserSettingsModel)
+            .filter(UserSettingsModel.userId == current_user.id)
+            .first()
+        )
+        if settings:
+            settings.username = payload.settings.username
+            settings.practiceMode = payload.settings.practiceMode
+            settings.dailyNewWordTarget = payload.settings.dailyNewWordTarget
+        else:
+            db.add(
+                UserSettingsModel(
+                    userId=current_user.id,
+                    username=payload.settings.username,
+                    practiceMode=payload.settings.practiceMode,
+                    dailyNewWordTarget=payload.settings.dailyNewWordTarget,
+                )
+            )
+
+    db.commit()
+    return {"detail": "导入成功"}

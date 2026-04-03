@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import { useState } from 'react'
 import type { WordItem } from '../../features/words/wordsSlice'
 import Icon from '../Icon'
 
@@ -6,7 +6,7 @@ interface AcademicCategory {
   id: string
   name: string
   description: string
-  icon: string
+  icon: 'book' | 'share' | 'grid' | 'chart' | 'mic' | 'info' | 'pencil' | 'chat-bubble'
   color: string
   disciplines: string[]
   difficultyLevels: number[]
@@ -31,7 +31,7 @@ const ACADEMIC_CATEGORIES: AcademicCategory[] = [
     id: 'social_science',
     name: '社会科学',
     description: '社会学、心理学、政治学等学术词汇',
-    icon: 'users',
+    icon: 'share',
     color: 'text-blue-600 bg-blue-100',
     disciplines: ['Sociology', 'Psychology', 'Political Science', 'Economics'],
     difficultyLevels: [3, 4, 5]
@@ -40,7 +40,7 @@ const ACADEMIC_CATEGORIES: AcademicCategory[] = [
     id: 'stem',
     name: '理工学科',
     description: '科学、技术、工程、数学领域的术语',
-    icon: 'calculator',
+    icon: 'grid',
     color: 'text-green-600 bg-green-100',
     disciplines: ['Science', 'Technology', 'Engineering', 'Mathematics'],
     difficultyLevels: [3, 4, 5]
@@ -49,7 +49,7 @@ const ACADEMIC_CATEGORIES: AcademicCategory[] = [
     id: 'business',
     name: '商务英语',
     description: '商业、金融、管理领域的专业词汇',
-    icon: 'briefcase',
+    icon: 'chart',
     color: 'text-amber-600 bg-amber-100',
     disciplines: ['Business', 'Finance', 'Management', 'Marketing'],
     difficultyLevels: [2, 3, 4]
@@ -58,7 +58,7 @@ const ACADEMIC_CATEGORIES: AcademicCategory[] = [
     id: 'medical',
     name: '医学词汇',
     description: '医疗、健康、生物医学领域的术语',
-    icon: 'heart-pulse',
+    icon: 'mic',
     color: 'text-red-600 bg-red-100',
     disciplines: ['Medicine', 'Healthcare', 'Biology'],
     difficultyLevels: [4, 5]
@@ -67,7 +67,7 @@ const ACADEMIC_CATEGORIES: AcademicCategory[] = [
     id: 'law',
     name: '法律英语',
     description: '法律、法规、司法领域的专业术语',
-    icon: 'gavel',
+    icon: 'info',
     color: 'text-gray-600 bg-gray-100',
     disciplines: ['Law', 'Justice', 'Regulation'],
     difficultyLevels: [4, 5]
@@ -85,7 +85,7 @@ const ACADEMIC_CATEGORIES: AcademicCategory[] = [
     id: 'academic_phrase',
     name: '学术短语',
     description: '学术论文中常用的固定表达和短语',
-    icon: 'quote-left',
+    icon: 'pencil',
     color: 'text-indigo-600 bg-indigo-100',
     disciplines: ['Academic Writing', 'Research'],
     difficultyLevels: [2, 3, 4]
@@ -213,7 +213,7 @@ export default function AcademicCategories({ word, onCategorySelect }: AcademicC
                 : 'bg-gray-50 text-gray-600 border-gray-200 hover:bg-gray-100'
             }`}
           >
-            <Icon name={category.icon} size={14} />
+            <Icon name={category.icon as any} size={14} />
             {category.name}
           </button>
         ))}

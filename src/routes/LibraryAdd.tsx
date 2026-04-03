@@ -3,7 +3,7 @@ import { addArticle } from '../features/articles/articlesSlice'
 import { useState } from 'react'
 import type { FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { API_BASE } from '../config'
+import { articlesApi } from '../services/api'
 
 export default function LibraryAdd() {
   const dispatch = useDispatch()
@@ -16,9 +16,9 @@ export default function LibraryAdd() {
   const onAdd = (e: FormEvent) => {
     e.preventDefault()
     if (!title || !content) return
-    fetch(`${API_BASE}/api/articles`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({ title, content, contentZh, type })})
-      .then(r=>r.json())
-      .then(a=>{ dispatch(addArticle({ title: a.title, content: a.content, contentZh: a.contentZh, type: a.type })); navigate('/library') })
+    articlesApi.create({ title, content, contentZh, type })
+      .then(a => { dispatch(addArticle(a)); navigate('/library') })
+      .catch(err => { console.error(err) })
   }
 
   return (

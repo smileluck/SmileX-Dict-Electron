@@ -3,7 +3,9 @@ import type { ComponentProps } from 'react'
 type IconName = 'dict' | 'book' | 'star' | 'wrong' | 'check' | 'review' | 'eye' |
   'search' | 'pencil' | 'link' | 'chat-bubble' | 'puzzle' | 'share' | 'grid' |
   'warning' | 'map' | 'lightbulb' | 'mic' | 'info' | 'chart' | 'academic-cap' |
-  'chevron-up' | 'chevron-down' | 'book-open' | 'arrow-right'
+  'chevron-up' | 'chevron-down' | 'book-open' | 'arrow-right' |
+  'check-circle' | 'users' | 'calculator' | 'briefcase' | 'heart-pulse' | 'gavel' |
+  'quote-left'
 
 type Props = {
   name: IconName
@@ -112,6 +114,34 @@ export default function Icon({ name, size = 20, className }: Props) {
     case 'arrow-right':
       return (
         <svg {...common} className={className}><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+      )
+    case 'check-circle':
+      return (
+        <svg {...common} className={className}><circle cx="12" cy="12" r="10"/><path d="M9 12l2 2 4-4"/></svg>
+      )
+    case 'users':
+      return (
+        <svg {...common} className={className}><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+      )
+    case 'calculator':
+      return (
+        <svg {...common} className={className}><rect x="4" y="2" width="16" height="20" rx="2"/><path d="M8 6h8M8 10h8M8 14h2M12 14h2M8 18h2M12 18h2"/></svg>
+      )
+    case 'briefcase':
+      return (
+        <svg {...common} className={className}><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/><path d="M2 13h20"/></svg>
+      )
+    case 'heart-pulse':
+      return (
+        <svg {...common} className={className}><path d="M20.42 4.58a5.4 5.4 0 0 0-7.65 0l-.77.78-.77-.78a5.4 5.4 0 0 0-7.65 0C1.46 6.7 1.33 10.28 4 13l8 8 8-8c2.67-2.72 2.54-6.3.42-8.42z"/><path d="M3.5 12h4l2-4 3 8 2-4h6"/></svg>
+      )
+    case 'gavel':
+      return (
+        <svg {...common} className={className}><path d="M14.5 2.5l5 5-1.5 1.5-5-5z"/><path d="M9.5 7.5l5 5-1.5 1.5-5-5z"/><path d="M2 19.5l3.5-3.5 5 5L7 24.5z"/><path d="M7.5 14.5L10 12l2 2-2.5 2.5z"/></svg>
+      )
+    case 'quote-left':
+      return (
+        <svg {...common} className={className}><path d="M3 21c3 0 7-1 7-8V5c0-1.25-.756-2.017-2-2H4c-1.25 0-2 .75-2 1.972V11c0 1.25.75 2 2 2 1 0 1 0 1 1v1c0 1-1 2-2 2s-1 .008-1 1.031V21z"/><path d="M15 21c3 0 7-1 7-8V5c0-1.25-.757-2.017-2-2h-4c-1.25 0-2 .75-2 1.972V11c0 1.25.75 2 2 2h.75c0 2.25.25 4-2.75 4v3z"/></svg>
       )
     default:
       return null

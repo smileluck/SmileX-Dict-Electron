@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react'
+import { useState, useCallback } from 'react'
 import type { WordItem } from '../../features/words/wordsSlice'
 import Icon from '../Icon'
 
@@ -41,7 +41,7 @@ const PHONEME_TIPS: Record<string, string> = {
 
 export default function PronunciationExercise({ word, onComplete }: PronunciationExerciseProps) {
   const [isRecording, setIsRecording] = useState(false)
-  const [hasRecorded, setHasRecorded] = useState(false)
+  const [, setHasRecorded] = useState(false)
   const [feedback, setFeedback] = useState<PronunciationFeedback | null>(null)
   const [showTips, setShowTips] = useState(false)
   const [attempts, setAttempts] = useState(0)

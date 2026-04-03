@@ -1,5 +1,5 @@
-import React, { useState, useMemo } from 'react'
-import { useSelector, useDispatch } from 'react-redux'
+import { useState, useMemo } from 'react'
+import { useSelector } from 'react-redux'
 import type { RootState } from '../../store'
 import type { WordItem } from '../../features/words/wordsSlice'
 import Icon from '../Icon'
@@ -64,7 +64,6 @@ const LEARNING_PATHS: LearningPath[] = [
 ]
 
 export default function LearningPath() {
-  const dispatch = useDispatch()
   const words = useSelector((s: RootState) => s.words.items)
   const [selectedPath, setSelectedPath] = useState<string>('tem4')
   const [showRecommendations, setShowRecommendations] = useState(true)

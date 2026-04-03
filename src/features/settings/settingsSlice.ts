@@ -1,6 +1,7 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit'
 import type { PayloadAction } from '@reduxjs/toolkit'
 import type { RootState } from '../../store'
+import { settingsApi } from '../../services/api'
 
 export type PracticeMode = 'zh-en' | 'en-en'
 
@@ -28,17 +29,7 @@ export const fetchSettings = createAsyncThunk<
   void,
   { state: RootState }
 >('settings/fetchSettings', async () => {
-  const response = await fetch('/api/settings', {
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${localStorage.getItem('smilex_dict_token')}`
-    }
-  })
-  if (!response.ok) {
-    const error = await response.json()
-    throw new Error(error.detail || 'Failed to fetch settings')
-  }
-  return await response.json()
+  return await settingsApi.get()
 })
 
 const settingsSlice = createSlice({

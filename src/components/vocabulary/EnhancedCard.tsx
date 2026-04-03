@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import { useState } from 'react'
 import type { WordItem } from '../../features/words/wordsSlice'
 import Icon from '../Icon'
 
@@ -166,7 +166,7 @@ export default function EnhancedCard({ word, onMarkMastered, onMarkWrong }: Enha
                 : 'text-gray-500 hover:text-gray-700'
             }`}
           >
-            <Icon name={tab.icon} size={14} />
+            <Icon name={tab.icon as any} size={14} />
             {tab.label}
           </button>
         ))}

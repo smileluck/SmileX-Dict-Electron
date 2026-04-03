@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import { useState } from 'react'
 import type { WordItem } from '../../features/words/wordsSlice'
 import Icon from '../Icon'
 

@@ -1,7 +1,6 @@
 import { useState } from 'react'
 import { useSelector } from 'react-redux'
 import type { RootState } from '../store'
-import type { WordItem } from '../features/words/wordsSlice'
 import WordAnalysis from '../components/vocabulary/WordAnalysis'
 import AcademicCategories from '../components/vocabulary/AcademicCategories'
 import EnhancedCard from '../components/vocabulary/EnhancedCard'
@@ -10,7 +9,6 @@ import LearningPath from '../components/vocabulary/LearningPath'
 import VocabularyNetwork from '../components/vocabulary/VocabularyNetwork'
 import PronunciationExercise from '../components/vocabulary/PronunciationExercise'
 import Icon from '../components/Icon'
-import type { WordItem } from '../features/words/wordsSlice'
 
 type TabKey = 'analysis' | 'writing' | 'path' | 'network'
 
@@ -53,7 +51,7 @@ export default function VocabularyAnalysis() {
                 : 'text-gray-500 hover:text-gray-700'
             }`}
           >
-            <Icon name={tab.icon} size={16} />
+            <Icon name={tab.icon as any} size={16} />
             {tab.label}
           </button>
         ))}
