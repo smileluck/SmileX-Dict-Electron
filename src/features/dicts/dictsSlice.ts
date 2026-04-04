@@ -24,10 +24,13 @@ const initialState: DictsState = {
     { id: 'mastered', name: '已掌握', wordCount: 0, source: 'special' },
   ],
   recommend: [
-    { id: 'cet4', name: 'CET-4 大学英语四级词库', wordCount: 2607, source: 'system' },
-    { id: 'cet6', name: 'CET-6 大学英语六级词库', wordCount: 2345, source: 'system' },
-    { id: 'toefl', name: 'TOEFL 托福考试词库', wordCount: 4264, source: 'system' },
-    { id: 'ielts', name: 'IELTS 雅思词库', wordCount: 3575, source: 'system' },
+    { id: 'cet4', name: 'CET-4 大学英语四级', wordCount: 2607, source: 'system' },
+    { id: 'cet6', name: 'CET-6 大学英语六级', wordCount: 2345, source: 'system' },
+    { id: 'toefl', name: 'TOEFL 托福', wordCount: 4264, source: 'system' },
+    { id: 'ielts', name: 'IELTS 雅思', wordCount: 3575, source: 'system' },
+    { id: 'gre', name: 'GRE 研究生入学', wordCount: 3251, source: 'system' },
+    { id: 'bec-h', name: 'BEC高级 商务英语', wordCount: 2593, source: 'system' },
+    { id: 'tem8', name: 'TEM-8 专八词汇', wordCount: 6193, source: 'system' },
   ],
 }
 

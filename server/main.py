@@ -1,8 +1,19 @@
 import uuid
 import json
 import os
+import threading
 from datetime import date, datetime, timedelta, timezone
-from fastapi import FastAPI, Depends, HTTPException, status, Query, Request
+from fastapi import (
+    FastAPI,
+    Depends,
+    HTTPException,
+    status,
+    Query,
+    Request,
+    UploadFile,
+    File,
+    Form,
+)
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
@@ -19,6 +30,7 @@ from models import (
     UserSettingsModel,
 )
 from auth import hash_password, verify_password, create_access_token, get_current_user
+from spider import lookup_word
 
 app = FastAPI(title="SmileX Dict Admin")
 
@@ -710,6 +722,7 @@ def add_event(
 class UserSettings(BaseModel):
     userId: str
     username: str
+    practiceMode: Optional[str] = "zh-en"
     dailyNewWordTarget: int = 20
 
 
@@ -983,3 +996,404 @@ def import_data(
 
     db.commit()
     return {"detail": "导入成功"}
+
+
+# --- Word Lookup (Online Dictionary) ---
+
+
+class WordLookupResult(BaseModel):
+    """在线查词结果。"""
+
+    term: str
+    ipa: Optional[str] = None
+    phonetic_uk: Optional[str] = None
+    phonetic_us: Optional[str] = None
+    meaning: str
+    en_meaning: Optional[str] = None
+    examples: List[str] = []
+    phrases: List[str] = []
+    synonyms: List[str] = []
+    grammar: List[str] = []
+
+
+@app.get("/api/words/lookup", response_model=WordLookupResult)
+def lookup_word_api(
+    q: str = Query(..., min_length=1, max_length=100, description="要查询的单词"),
+    save: bool = Query(default=False, description="是否自动保存到词库"),
+    dictId: Optional[str] = Query(default=None, description="保存到指定词典"),
+    current_user: UserModel = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """
+    在线查词 — 从有道词典获取单词释义。
+
+    可通过 save=true 自动将查询结果保存到用户的词库中。
+    """
+    result = lookup_word(q.strip())
+    if not result:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"未找到单词 '{q}' 的释义",
+        )
+
+    # 可选：保存到数据库
+    if save:
+        existing = (
+            db.query(WordItemModel)
+            .filter(
+                WordItemModel.term == result["term"],
+                WordItemModel.userId == current_user.id,
+            )
+            .first()
+        )
+        if not existing:
+            word_id = f"w{uuid.uuid4().hex[:12]}"
+            synonyms_str = ",".join(result.get("synonyms", []))
+            new_word = WordItemModel(
+                id=word_id,
+                term=result["term"],
+                ipa=result.get("ipa", ""),
+                meaning=result.get("meaning", ""),
+                enMeaning=result.get("en_meaning", ""),
+                example="\n".join(result.get("examples", [])[:3]),
+                synonyms=synonyms_str,
+                status="new",
+                dictId=dictId,
+                userId=current_user.id,
+            )
+            db.add(new_word)
+
+            # 更新词典的 wordCount
+            if dictId:
+                dict_item = (
+                    db.query(DictItemModel)
+                    .filter(
+                        DictItemModel.id == dictId,
+                        DictItemModel.userId == current_user.id,
+                    )
+                    .first()
+                )
+                if dict_item:
+                    dict_item.wordCount = (dict_item.wordCount or 0) + 1
+
+            db.commit()
+
+    return WordLookupResult(
+        term=result["term"],
+        ipa=result.get("ipa"),
+        phonetic_uk=result.get("phonetic_uk"),
+        phonetic_us=result.get("phonetic_us"),
+        meaning=result.get("meaning", ""),
+        en_meaning=result.get("en_meaning"),
+        examples=result.get("examples", []),
+        phrases=result.get("phrases", []),
+        synonyms=result.get("synonyms", []),
+        grammar=result.get("grammar", []),
+    )
+
+
+# --- TXT Batch Import (Background Task) ---
+
+# 导入任务状态存储
+_import_tasks: dict[str, dict] = {}
+_import_lock = threading.Lock()
+
+
+def _run_txt_import(task_id: str, words: list[str], dict_id: str, user_id: str):
+    """后台线程：批量从有道词典导入单词。"""
+    db = SessionLocal()
+    try:
+        imported_count = 0
+        failed_count = 0
+        skipped_count = 0
+        total = len(words)
+
+        for i, word_text in enumerate(words):
+            word_text = word_text.strip()
+            if not word_text:
+                continue
+
+            # 更新进度
+            with _import_lock:
+                _import_tasks[task_id]["current"] = i + 1
+                _import_tasks[task_id]["current_word"] = word_text
+
+            # 检查是否已存在
+            existing = (
+                db.query(WordItemModel)
+                .filter(
+                    WordItemModel.term == word_text,
+                    WordItemModel.userId == user_id,
+                )
+                .first()
+            )
+            if existing:
+                skipped_count += 1
+                continue
+
+            # 从有道获取释义
+            result = lookup_word(word_text)
+            if not result:
+                failed_count += 1
+                continue
+
+            # 保存到数据库
+            word_id = f"w{uuid.uuid4().hex[:12]}"
+            synonyms_str = ",".join(result.get("synonyms", []))
+            new_word = WordItemModel(
+                id=word_id,
+                term=result["term"],
+                ipa=result.get("ipa", ""),
+                meaning=result.get("meaning", ""),
+                enMeaning=result.get("en_meaning", ""),
+                example="\n".join(result.get("examples", [])[:3]),
+                synonyms=synonyms_str,
+                status="new",
+                dictId=dict_id,
+                userId=user_id,
+            )
+            db.add(new_word)
+            imported_count += 1
+
+            # 每20个词提交一次，避免数据库锁超时
+            if imported_count % 20 == 0:
+                db.commit()
+
+        # 最终提交
+        db.commit()
+
+        # 更新词典的 wordCount
+        if dict_id:
+            actual_count = (
+                db.query(WordItemModel)
+                .filter(
+                    WordItemModel.dictId == dict_id,
+                    WordItemModel.userId == user_id,
+                )
+                .count()
+            )
+            dict_item = (
+                db.query(DictItemModel)
+                .filter(DictItemModel.id == dict_id, DictItemModel.userId == user_id)
+                .first()
+            )
+            if dict_item:
+                dict_item.wordCount = actual_count
+                db.commit()
+
+        with _import_lock:
+            _import_tasks[task_id]["status"] = "completed"
+            _import_tasks[task_id]["imported"] = imported_count
+            _import_tasks[task_id]["failed"] = failed_count
+            _import_tasks[task_id]["skipped"] = skipped_count
+
+    except Exception as e:
+        db.rollback()
+        with _import_lock:
+            _import_tasks[task_id]["status"] = "failed"
+            _import_tasks[task_id]["error"] = str(e)
+    finally:
+        db.close()
+
+
+@app.post("/api/import/txt")
+def import_txt(
+    file: UploadFile = File(..., description="TXT文件，每行一个单词"),
+    dictId: str = Form(..., description="导入到指定词典ID"),
+    current_user: UserModel = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """
+    TXT词表批量导入 — 上传TXT文件（每行一个单词），后台异步从有道词典获取释义并导入。
+    """
+    # 验证词典存在且属于当前用户
+    dict_item = (
+        db.query(DictItemModel)
+        .filter(DictItemModel.id == dictId, DictItemModel.userId == current_user.id)
+        .first()
+    )
+    if not dict_item:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="词典不存在",
+        )
+
+    # 读取文件内容
+    if not file.filename or not file.filename.endswith(".txt"):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="仅支持 .txt 文件",
+        )
+
+    try:
+        raw = file.file.read()
+        content = raw.decode("utf-8-sig")  # utf-8-sig 自动处理 BOM
+    except UnicodeDecodeError:
+        try:
+            content = raw.decode("gbk")
+        except UnicodeDecodeError:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="文件编码不支持，请使用 UTF-8 编码",
+            )
+
+    # 解析单词列表
+    words = [line.strip() for line in content.splitlines() if line.strip()]
+    if not words:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="文件为空或未包含有效单词",
+        )
+
+    if len(words) > 5000:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="单次导入不能超过 5000 个单词",
+        )
+
+    # 创建后台任务
+    task_id = f"import-{uuid.uuid4().hex[:8]}"
+    with _import_lock:
+        _import_tasks[task_id] = {
+            "id": task_id,
+            "status": "running",
+            "total": len(words),
+            "current": 0,
+            "current_word": "",
+            "imported": 0,
+            "failed": 0,
+            "skipped": 0,
+            "error": None,
+            "dict_id": dictId,
+            "started_at": datetime.now(timezone.utc).isoformat(),
+        }
+
+    # 启动后台线程
+    thread = threading.Thread(
+        target=_run_txt_import,
+        args=(task_id, words, dictId, current_user.id),
+        daemon=True,
+    )
+    thread.start()
+
+    return {
+        "task_id": task_id,
+        "total": len(words),
+        "detail": f"已开始导入 {len(words)} 个单词",
+    }
+
+
+@app.get("/api/import/status")
+def get_import_status(
+    taskId: str = Query(..., description="导入任务ID"),
+    current_user: UserModel = Depends(get_current_user),
+):
+    """查询TXT导入任务的进度。"""
+    with _import_lock:
+        task = _import_tasks.get(taskId)
+    if not task:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="任务不存在",
+        )
+    return task
+
+
+# --- Quick TXT Import (Sync, for small batches) ---
+
+
+@app.post("/api/import/quick-txt")
+def quick_import_txt(
+    file: UploadFile = File(..., description="TXT文件，每行一个单词"),
+    dictId: str = Form(..., description="导入到指定词典ID"),
+    current_user: UserModel = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """
+    TXT快速导入 — 适用于少量单词（≤50个），同步执行。
+    直接将单词导入词库（仅单词文本），不实时爬取释义。
+    用户可在后续通过"在线查词"补充释义。
+    """
+    dict_item = (
+        db.query(DictItemModel)
+        .filter(DictItemModel.id == dictId, DictItemModel.userId == current_user.id)
+        .first()
+    )
+    if not dict_item:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="词典不存在",
+        )
+
+    try:
+        raw = file.file.read()
+        content = raw.decode("utf-8-sig")
+    except UnicodeDecodeError:
+        try:
+            content = raw.decode("gbk")
+        except UnicodeDecodeError:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="文件编码不支持，请使用 UTF-8 编码",
+            )
+
+    words = [line.strip() for line in content.splitlines() if line.strip()]
+    if not words:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="文件为空或未包含有效单词",
+        )
+
+    if len(words) > 200:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="快速导入最多支持 200 个单词，更多请使用批量导入",
+        )
+
+    imported = 0
+    skipped = 0
+    for word_text in words:
+        existing = (
+            db.query(WordItemModel)
+            .filter(
+                WordItemModel.term == word_text,
+                WordItemModel.userId == current_user.id,
+            )
+            .first()
+        )
+        if existing:
+            skipped += 1
+            continue
+
+        word_id = f"w{uuid.uuid4().hex[:12]}"
+        new_word = WordItemModel(
+            id=word_id,
+            term=word_text,
+            meaning=word_text,  # 占位，后续查词时填充
+            status="new",
+            dictId=dictId,
+            userId=current_user.id,
+        )
+        db.add(new_word)
+        imported += 1
+
+    db.commit()
+
+    # 更新词典 wordCount
+    actual_count = (
+        db.query(WordItemModel)
+        .filter(
+            WordItemModel.dictId == dictId,
+            WordItemModel.userId == current_user.id,
+        )
+        .count()
+    )
+    dict_item.wordCount = actual_count
+    db.commit()
+
+    return {
+        "imported": imported,
+        "skipped": skipped,
+        "total": len(words),
+        "detail": f"成功导入 {imported} 个单词，跳过 {skipped} 个已存在单词",
+    }

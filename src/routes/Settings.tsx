@@ -2,7 +2,7 @@ import { useSelector, useDispatch } from 'react-redux'
 import type { RootState, AppDispatch } from '../store'
 import { fetchSettings, updateSettings } from '../features/settings/settingsSlice'
 import { useEffect, useState, useRef } from 'react'
-import { settingsApi, dataApi, wordsApi } from '../services/api'
+import { settingsApi, dataApi, wordsApi, lookupApi } from '../services/api'
 import type { WordItem as ApiWordItem } from '../services/api'
 import { useToast } from '../components/Toast'
 import { useTheme } from '../hooks/useTheme'
@@ -20,6 +20,8 @@ export default function Settings() {
   const [exporting, setExporting] = useState(false)
   const [importing, setImporting] = useState(false)
   const [csvImporting, setCsvImporting] = useState(false)
+  const txtFileRef = useRef<HTMLInputElement>(null)
+  const [txtImporting, setTxtImporting] = useState(false)
 
   useEffect(() => {
     if (!settings) {
@@ -143,6 +145,42 @@ export default function Settings() {
     }
     result.push(current)
     return result
+  }
+
+  const handleTxtImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setTxtImporting(true)
+    try {
+      const text = await file.text()
+      const lines = text.split(/\r?\n/).map(l => l.replace(/\ufeff/g, '').trim()).filter(Boolean)
+      if (lines.length === 0) throw new Error('文件为空')
+
+      // 对每个单词，通过查词API获取释义并导入
+      let imported = 0
+      let failed = 0
+      const batchSize = 5
+      for (let i = 0; i < lines.length; i += batchSize) {
+        const batch = lines.slice(i, i + batchSize)
+        const results = await Promise.allSettled(
+          batch.map(async (term) => {
+            const result = await lookupApi.lookup(term, true)
+            return result
+          })
+        )
+        for (const r of results) {
+          if (r.status === 'fulfilled' && r.value) imported++
+          else failed++
+        }
+      }
+
+      showToast(`TXT导入完成：成功 ${imported} 个，失败 ${failed} 个`, imported > 0 ? 'success' : 'error')
+    } catch (error) {
+      showToast('导入失败: ' + (error instanceof Error ? error.message : '文件格式错误'), 'error')
+    } finally {
+      setTxtImporting(false)
+      e.target.value = ''
+    }
   }
 
   if (!settings && loading) {
@@ -269,6 +307,24 @@ export default function Settings() {
               disabled={csvImporting}
             >
               {csvImporting ? '导入中...' : '从 CSV 导入'}
+            </button>
+          </div>
+          <div className="border-t pt-4">
+            <label className="block text-sm font-medium text-gray-700 mb-2">从词表文件导入</label>
+            <p className="text-xs text-gray-500 mb-2">从 TXT 文件导入单词列表（每行一个单词），自动从有道词典获取完整释义</p>
+            <input
+              type="file"
+              accept=".txt"
+              ref={txtFileRef}
+              onChange={handleTxtImport}
+              className="hidden"
+            />
+            <button
+              className="px-4 py-2 border rounded-lg hover:bg-gray-50 transition-colors text-sm"
+              onClick={() => txtFileRef.current?.click()}
+              disabled={txtImporting}
+            >
+              {txtImporting ? '导入中...' : '从 TXT 词表导入'}
             </button>
           </div>
         </div>

@@ -230,3 +230,89 @@ export const dataApi = {
   exportAll: () => request<Record<string, unknown>>('/api/export'),
   importAll: (data: Record<string, unknown>) => request<void>('/api/import', { method: 'POST', body: data }),
 }
+
+// Word Lookup API (Online Dictionary)
+export interface WordLookupResult {
+  term: string
+  ipa?: string
+  phonetic_uk?: string
+  phonetic_us?: string
+  meaning: string
+  en_meaning?: string
+  examples: string[]
+  phrases: string[]
+  synonyms: string[]
+  grammar: string[]
+}
+
+export const lookupApi = {
+  /** 在线查词 */
+  lookup: (q: string, save = false, dictId?: string) =>
+    request<WordLookupResult>(`/api/words/lookup?q=${encodeURIComponent(q)}&save=${save}${dictId ? `&dictId=${dictId}` : ''}`),
+}
+
+// TXT Import API
+export interface ImportTaskInfo {
+  id: string
+  status: 'running' | 'completed' | 'failed'
+  total: number
+  current: number
+  current_word: string
+  imported: number
+  failed: number
+  skipped: number
+  error: string | null
+  dict_id: string
+  started_at: string
+}
+
+export interface QuickImportResult {
+  imported: number
+  skipped: number
+  total: number
+  detail: string
+}
+
+export const importApi = {
+  /** 上传TXT文件后台批量导入（异步，从有道爬取释义） */
+  importTxt: (file: File, dictId: string) => {
+    const formData = new FormData()
+    formData.append('file', file)
+    formData.append('dictId', dictId)
+    const token = getToken()
+    return fetch(`${API_BASE}/api/import/txt`, {
+      method: 'POST',
+      headers: token && !isTokenExpired() ? { Authorization: `Bearer ${token}` } : {},
+      body: formData,
+    }).then(async (res) => {
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({ detail: `HTTP ${res.status}` }))
+        throw new ApiError(data.detail || `HTTP ${res.status}`, res.status)
+      }
+      return res.json() as Promise<{ task_id: string; total: number; detail: string }>
+    })
+  },
+
+  /** 快速导入TXT（同步，仅导入单词文本，不爬取释义） */
+  quickImportTxt: (file: File, dictId: string) => {
+    const formData = new FormData()
+    formData.append('file', file)
+    formData.append('dictId', dictId)
+    const token = getToken()
+    return fetch(`${API_BASE}/api/import/quick-txt`, {
+      method: 'POST',
+      headers: token && !isTokenExpired() ? { Authorization: `Bearer ${token}` } : {},
+      body: formData,
+    }).then(async (res) => {
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({ detail: `HTTP ${res.status}` }))
+        throw new ApiError(data.detail || `HTTP ${res.status}`, res.status)
+      }
+      return res.json() as Promise<QuickImportResult>
+    })
+  },
+
+  /** 查询导入任务进度 */
+  getStatus: (taskId: string) =>
+    request<ImportTaskInfo>(`/api/import/status?taskId=${taskId}`),
+}
