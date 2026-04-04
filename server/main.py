@@ -65,9 +65,11 @@ async def http_exception_handler(request: Request, exc: HTTPException):
             "Incorrect username or password": "用户名或密码错误",
             "Could not validate credentials": "认证失败，请重新登录",
         }
-        detail = translations.get(
-            detail, error_messages.get(exc.status_code, str(detail))
-        )
+        translated = translations.get(detail)
+        if not translated:
+            detail = str(detail)
+        else:
+            detail = translated
 
     return JSONResponse(
         status_code=exc.status_code,
