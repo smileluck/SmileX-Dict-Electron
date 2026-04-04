@@ -45,6 +45,33 @@ const dictsSlice = createSlice({
       const id = `d${Date.now()}`
       state.mine.push({ id, name: action.payload.name, wordCount: action.payload.wordCount ?? 0, source: 'custom' })
     },
+    setDicts(state, action: PayloadAction<DictItem[]>) {
+      const specialIds = ['collected', 'wrong', 'mastered']
+      const specialDicts = state.mine.filter(d => specialIds.includes(d.id))
+      const serverDicts = action.payload.filter(d => !specialIds.includes(d.id))
+      state.mine = [...specialDicts, ...serverDicts]
+    },
+    addServerDict(state, action: PayloadAction<DictItem>) {
+      const specialIds = ['collected', 'wrong', 'mastered']
+      if (!specialIds.includes(action.payload.id)) {
+        const exists = state.mine.find(d => d.id === action.payload.id)
+        if (!exists) {
+          state.mine.push(action.payload)
+        }
+      }
+    },
+    updateDict(state, action: PayloadAction<{ id: string; updates: Partial<DictItem> }>) {
+      const dict = state.mine.find(d => d.id === action.payload.id)
+      if (dict) {
+        Object.assign(dict, action.payload.updates)
+      }
+    },
+    removeDict(state, action: PayloadAction<string>) {
+      state.mine = state.mine.filter(d => d.id !== action.payload)
+      if (state.activeId === action.payload) {
+        state.activeId = undefined
+      }
+    },
     updateSpecialCounts(state, action: PayloadAction<{ collected: number; wrong: number; mastered: number }>) {
       const m = state.mine
       const upd = (id: string, n: number) => { const d = m.find(i=>i.id===id); if (d) d.wordCount = n }
@@ -55,5 +82,5 @@ const dictsSlice = createSlice({
   },
 })
 
-export const { setActive, addCustom, updateSpecialCounts } = dictsSlice.actions
+export const { setActive, addCustom, setDicts, addServerDict, updateDict, removeDict, updateSpecialCounts } = dictsSlice.actions
 export default dictsSlice.reducer

@@ -1,12 +1,13 @@
 import { useSelector, useDispatch } from 'react-redux'
 import type { RootState } from '../store'
-import { addCustom, setActive, updateSpecialCounts } from '../features/dicts/dictsSlice'
+import { addCustom, setActive, updateSpecialCounts, setDicts, updateDict, removeDict } from '../features/dicts/dictsSlice'
 import { useEffect, useState, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Icon from '../components/Icon'
 import { useToast } from '../components/Toast'
-import { lookupApi, importApi } from '../services/api'
+import { lookupApi, importApi, dictsApi } from '../services/api'
 import type { WordLookupResult, ImportTaskInfo } from '../services/api'
+import Loading from '../components/Loading'
 
 export default function Dicts() {
   const dispatch = useDispatch()
@@ -16,6 +17,8 @@ export default function Dicts() {
   const words = useSelector((s: RootState) => s.words.items)
   const isAuthenticated = useSelector((s: RootState) => s.auth.isAuthenticated)
   const [name, setName] = useState('')
+  const [dictsLoading, setDictsLoading] = useState(false)
+  const [creatingDict, setCreatingDict] = useState(false)
 
   // 在线查词
   const [lookupQuery, setLookupQuery] = useState('')
@@ -39,10 +42,40 @@ export default function Dicts() {
     dispatch(updateSpecialCounts({ collected, wrong, mastered }))
   }, [words, dispatch])
 
-  const onCreate = () => {
+  useEffect(() => {
+    if (isAuthenticated && !dictsLoading) {
+      setDictsLoading(true)
+      dictsApi.list()
+        .then(serverDicts => {
+          dispatch(setDicts(serverDicts))
+        })
+        .catch(err => {
+          console.warn('Failed to load dicts:', err)
+        })
+        .finally(() => setDictsLoading(false))
+    }
+  }, [isAuthenticated, dispatch])
+
+  const onCreate = async () => {
     if (!name.trim()) return
-    dispatch(addCustom({ name }))
-    setName('')
+    
+    if (!isAuthenticated) {
+      showToast('请先登录后再创建词典', 'error')
+      return
+    }
+
+    setCreatingDict(true)
+    try {
+      const newDict = await dictsApi.create({ name })
+      dispatch(setDicts([newDict]))
+      setName('')
+      showToast('词典创建成功', 'success')
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : '创建失败'
+      showToast(errorMessage, 'error')
+    } finally {
+      setCreatingDict(false)
+    }
   }
 
   const active = dicts.mine.concat(dicts.recommend).find(d => d.id === dicts.activeId)
@@ -97,8 +130,23 @@ export default function Dicts() {
   const handleTxtImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
+    
+    if (!isAuthenticated) {
+      showToast('请先登录后再导入词表', 'error')
+      e.target.value = ''
+      return
+    }
+
     if (!selectedDictForImport) {
       showToast('请先选择要导入到哪个词典', 'error')
+      e.target.value = ''
+      return
+    }
+
+    // 验证选择的词典是后端词典(不是特殊词典)
+    const selectedDict = dicts.mine.find(d => d.id === selectedDictForImport)
+    if (!selectedDict || ['collected', 'wrong', 'mastered'].includes(selectedDictForImport)) {
+      showToast('请选择一个有效的用户词典', 'error')
       e.target.value = ''
       return
     }
@@ -108,15 +156,15 @@ export default function Dicts() {
 
     try {
       if (importMode === 'quick') {
-        // 快速导入（同步）
         const result = await importApi.quickImportTxt(file, selectedDictForImport)
         showToast(result.detail, 'success')
+        // 重新加载词典列表以更新wordCount
+        const serverDicts = await dictsApi.list()
+        dispatch(setDicts(serverDicts))
       } else {
-        // 后台批量导入（异步）
         const result = await importApi.importTxt(file, selectedDictForImport)
         showToast(`已开始导入 ${result.total} 个单词`, 'success')
 
-        // 轮询进度
         const poll = setInterval(async () => {
           try {
             const status = await importApi.getStatus(result.task_id)
@@ -125,6 +173,9 @@ export default function Dicts() {
               clearInterval(poll)
               showToast(`导入完成：成功 ${status.imported}，跳过 ${status.skipped}，失败 ${status.failed}`, 'success')
               setImporting(false)
+              // 重新加载词典列表以更新wordCount
+              const serverDicts = await dictsApi.list()
+              dispatch(setDicts(serverDicts))
             } else if (status.status === 'failed') {
               clearInterval(poll)
               showToast(`导入失败: ${status.error}`, 'error')
@@ -198,11 +249,31 @@ export default function Dicts() {
       <div className="rounded-xl border bg-white p-4">
         <div className="flex items-center justify-between">
           <h3 className="font-semibold">我的词典</h3>
-          <div className="flex items-center gap-2">
-            <input className="border rounded px-2 py-1 text-sm" placeholder="创建个人词典" value={name} onChange={e => setName(e.target.value)} />
-            <button className="px-2 py-1 bg-gray-900 text-white rounded text-sm" onClick={onCreate}>创建</button>
-          </div>
+          {isAuthenticated && (
+            <div className="flex items-center gap-2">
+              <input 
+                className="border rounded px-2 py-1 text-sm" 
+                placeholder="创建个人词典" 
+                value={name} 
+                onChange={e => setName(e.target.value)}
+                disabled={creatingDict}
+                onKeyDown={e => e.key === 'Enter' && onCreate()}
+              />
+              <button 
+                className="px-2 py-1 bg-gray-900 text-white rounded text-sm disabled:opacity-50" 
+                onClick={onCreate}
+                disabled={creatingDict || !name.trim()}
+              >
+                {creatingDict ? '创建中...' : '创建'}
+              </button>
+            </div>
+          )}
         </div>
+        {dictsLoading ? (
+          <div className="mt-3 flex justify-center py-4">
+            <Loading text="加载词典..." />
+          </div>
+        ) : (
         <div className="mt-3 grid md:grid-cols-4 gap-3">
           {dicts.mine.map(d => (
             <div key={d.id} className="rounded border bg-gray-50 p-3">
@@ -235,6 +306,7 @@ export default function Dicts() {
           ))}
           <div className="rounded border-dashed border p-3 text-center text-gray-500">+</div>
         </div>
+        )}
       </div>
 
       <div className="rounded-xl border bg-white p-4">
@@ -373,23 +445,40 @@ export default function Dicts() {
               <button className="px-2 py-1 border rounded text-xs hover:bg-gray-50" onClick={() => { if (!importing) setShowImport(false) }} disabled={importing}>关闭</button>
             </div>
 
-            <div className="space-y-4">
-              {/* 选择目标词典 */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">导入到词典</label>
-                <select
-                  className="w-full border rounded-lg px-3 py-2 text-sm"
-                  value={selectedDictForImport}
-                  onChange={e => setSelectedDictForImport(e.target.value)}
+            {!isAuthenticated ? (
+              <div className="text-center py-8">
+                <div className="text-amber-600 mb-2">⚠ 需要登录</div>
+                <p className="text-sm text-gray-600 mb-4">请先登录后再导入词表</p>
+                <button
+                  className="px-4 py-2 bg-brand-500 text-white rounded-lg text-sm hover:bg-brand-600"
+                  onClick={() => navigate('/login')}
                 >
-                  <option value="">请选择词典</option>
-                  {dicts.mine
-                    .filter(d => !['collected', 'wrong', 'mastered'].includes(d.id))
-                    .map(d => (
-                      <option key={d.id} value={d.id}>{d.name} ({d.wordCount}词)</option>
-                    ))}
-                </select>
+                  去登录
+                </button>
               </div>
+            ) : (
+              <div className="space-y-4">
+                {/* 选择目标词典 */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">导入到词典</label>
+                  <select
+                    className="w-full border rounded-lg px-3 py-2 text-sm"
+                    value={selectedDictForImport}
+                    onChange={e => setSelectedDictForImport(e.target.value)}
+                    disabled={importing}
+                  >
+                    <option value="">请选择词典</option>
+                    {dicts.mine
+                      .filter(d => !['collected', 'wrong', 'mastered'].includes(d.id))
+                      .filter(d => d.source === 'custom')
+                      .map(d => (
+                        <option key={d.id} value={d.id}>{d.name} ({d.wordCount}词)</option>
+                      ))}
+                  </select>
+                  {dicts.mine.filter(d => d.source === 'custom').length === 0 && (
+                    <p className="text-xs text-amber-600 mt-1">您还没有创建词典，请先创建一个词典</p>
+                  )}
+                </div>
 
               {/* 导入模式 */}
               <div>
@@ -462,6 +551,7 @@ export default function Dicts() {
                 <p className="mt-1">快速导入仅导入单词文本；智能导入自动从有道词典获取音标、释义、例句等完整信息。</p>
               </div>
             </div>
+            )}
           </div>
         </div>
       )}

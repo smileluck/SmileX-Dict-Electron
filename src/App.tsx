@@ -1,6 +1,7 @@
 import { Routes, Route, NavLink, Navigate, useLocation } from 'react-router-dom'
 import { useState, useRef, useEffect } from 'react'
 import { useSelector, useDispatch } from 'react-redux'
+import { useAppDispatch } from './hooks/useAppDispatch'
 import Home from './routes/Home'
 import Dicts from './routes/Dicts'
 import Panel from './routes/Panel'
@@ -20,6 +21,7 @@ import ErrorBoundary from './components/ErrorBoundary'
 import { ToastProvider } from './components/Toast'
 import SearchDialog from './components/SearchDialog'
 import { clearAuth } from './features/auth/authSlice'
+import { loadUserDicts } from './features/auth/authSlice'
 import type { RootState } from './store'
 import { useNavigate } from 'react-router-dom'
 
@@ -37,6 +39,13 @@ function App() {
   const navigate = useNavigate()
   const moreMenuRef = useRef<HTMLDivElement>(null)
   const userMenuRef = useRef<HTMLDivElement>(null)
+  const dictDispatch = useDispatch()
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      dictDispatch(loadUserDicts())
+    }
+  }, [isAuthenticated, dictDispatch])
 
   const handleLogout = () => {
     dispatch(clearAuth())

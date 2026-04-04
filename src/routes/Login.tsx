@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useDispatch } from 'react-redux'
-import { setAuth } from '../features/auth/authSlice'
+import { setAuth, loadUserDicts } from '../features/auth/authSlice'
 import { authApi } from '../services/api'
 import { useToast } from '../components/Toast'
 
@@ -97,6 +97,7 @@ export default function Login() {
         : await authApi.register(username, password)
 
       dispatch(setAuth({ token: result.access_token, user: result.user }))
+      dispatch(loadUserDicts())
       showToast(tab === 'login' ? '登录成功' : '注册成功', 'success')
       navigate(from, { replace: true })
     } catch (err: unknown) {

@@ -244,11 +244,10 @@ def create_dict(
     current_user: UserModel = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    count = (
-        db.query(DictItemModel).filter(DictItemModel.userId == current_user.id).count()
-    )
+    import uuid
+
     item = DictItemModel(
-        id=f"d{count + 1}",
+        id=f"d{uuid.uuid4().hex[:8]}",
         name=payload.name,
         wordCount=payload.wordCount,
         source="custom",

@@ -22,6 +22,9 @@ export default function Settings() {
   const [csvImporting, setCsvImporting] = useState(false)
   const txtFileRef = useRef<HTMLInputElement>(null)
   const [txtImporting, setTxtImporting] = useState(false)
+  const [targetDictId, setTargetDictId] = useState('')
+  const dicts = useSelector((s: RootState) => s.dicts.mine)
+  const isAuthenticated = useSelector((s: RootState) => s.auth.isAuthenticated)
 
   useEffect(() => {
     if (!settings) {
@@ -150,13 +153,26 @@ export default function Settings() {
   const handleTxtImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
+
+    if (!isAuthenticated) {
+      showToast('请先登录后再导入词表', 'error')
+      e.target.value = ''
+      return
+    }
+
+    if (!targetDictId) {
+      showToast('请先选择目标词典', 'error')
+      e.target.value = ''
+      return
+    }
+
     setTxtImporting(true)
     try {
       const text = await file.text()
       const lines = text.split(/\r?\n/).map(l => l.replace(/\ufeff/g, '').trim()).filter(Boolean)
       if (lines.length === 0) throw new Error('文件为空')
 
-      // 对每个单词，通过查词API获取释义并导入
+      // 对每个单词,通过查词API获取释义并导入
       let imported = 0
       let failed = 0
       const batchSize = 5
@@ -164,7 +180,7 @@ export default function Settings() {
         const batch = lines.slice(i, i + batchSize)
         const results = await Promise.allSettled(
           batch.map(async (term) => {
-            const result = await lookupApi.lookup(term, true)
+            const result = await lookupApi.lookup(term, true, targetDictId)
             return result
           })
         )
@@ -312,6 +328,34 @@ export default function Settings() {
           <div className="border-t pt-4">
             <label className="block text-sm font-medium text-gray-700 mb-2">从词表文件导入</label>
             <p className="text-xs text-gray-500 mb-2">从 TXT 文件导入单词列表（每行一个单词），自动从有道词典获取完整释义</p>
+            
+            {!isAuthenticated ? (
+              <div className="text-xs text-amber-600 mb-2">
+                ⚠ 请先登录后再导入词表
+              </div>
+            ) : (
+              <div className="mb-2">
+                <label className="block text-xs font-medium text-gray-600 mb-1">导入到词典</label>
+                <select
+                  className="w-full border rounded px-3 py-1.5 text-sm"
+                  value={targetDictId}
+                  onChange={e => setTargetDictId(e.target.value)}
+                  disabled={txtImporting}
+                >
+                  <option value="">请选择词典</option>
+                  {dicts
+                    .filter(d => !['collected', 'wrong', 'mastered'].includes(d.id))
+                    .filter(d => d.source === 'custom')
+                    .map(d => (
+                      <option key={d.id} value={d.id}>{d.name} ({d.wordCount}词)</option>
+                    ))}
+                </select>
+                {dicts.filter(d => d.source === 'custom').length === 0 && (
+                  <p className="text-xs text-amber-600 mt-1">您还没有创建词典，请先在词典页面创建</p>
+                )}
+              </div>
+            )}
+            
             <input
               type="file"
               accept=".txt"
@@ -320,9 +364,9 @@ export default function Settings() {
               className="hidden"
             />
             <button
-              className="px-4 py-2 border rounded-lg hover:bg-gray-50 transition-colors text-sm"
+              className="px-4 py-2 border rounded-lg hover:bg-gray-50 transition-colors text-sm disabled:opacity-50"
               onClick={() => txtFileRef.current?.click()}
-              disabled={txtImporting}
+              disabled={txtImporting || !isAuthenticated || !targetDictId}
             >
               {txtImporting ? '导入中...' : '从 TXT 词表导入'}
             </button>
