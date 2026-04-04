@@ -9,32 +9,104 @@ const TOKEN_KEY = 'smilex_dict_token'
 const TOKEN_EXPIRY_KEY = 'smilex_dict_token_expiry'
 const TOKEN_EXPIRY_MS = 7 * 24 * 60 * 60 * 1000
 
-function getToken(): string | null {
-  return localStorage.getItem(TOKEN_KEY)
+const isElectron = !!window.electronAPI?.isElectron
+
+let electronTokenCache: { token: string; expiry: number | null } | null = null
+
+function setCookieToken(token: string): void {
+  if (isElectron) return
+  const maxAge = Math.floor(TOKEN_EXPIRY_MS / 1000)
+  const secure = window.location.protocol === 'https:' ? '; Secure' : ''
+  document.cookie = `${TOKEN_KEY}=${encodeURIComponent(token)}; max-age=${maxAge}; SameSite=Lax; path=/${secure}`
 }
 
-function setToken(token: string): void {
+function getCookieToken(): string | null {
+  if (isElectron) return null
+  const escaped = TOKEN_KEY.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  const match = document.cookie.match(`(?:^|;\\s*)${escaped}=([^;]*)`)
+  return match ? decodeURIComponent(match[1]) : null
+}
+
+function removeCookieToken(): void {
+  document.cookie = `${TOKEN_KEY}=; max-age=0; SameSite=Lax; path=/`
+}
+
+async function getToken(): Promise<string | null> {
+  if (isElectron && window.electronAPI) {
+    if (electronTokenCache) return electronTokenCache.token
+    const result = await window.electronAPI.getToken()
+    if (result) {
+      electronTokenCache = { token: result.token, expiry: result.expiry ? parseInt(result.expiry, 10) : null }
+      return result.token
+    }
+    return null
+  }
+  const token = localStorage.getItem(TOKEN_KEY)
+  if (token) return token
+  const cookieToken = getCookieToken()
+  if (cookieToken) {
+    localStorage.setItem(TOKEN_KEY, cookieToken)
+    return cookieToken
+  }
+  return null
+}
+
+async function setToken(token: string): Promise<void> {
+  if (isElectron && window.electronAPI) {
+    const expiry = Date.now() + TOKEN_EXPIRY_MS
+    electronTokenCache = { token, expiry }
+    await window.electronAPI.storeToken(token, expiry)
+    return
+  }
   if (token) {
     localStorage.setItem(TOKEN_KEY, token)
+    setCookieToken(token)
   } else {
     localStorage.removeItem(TOKEN_KEY)
     localStorage.removeItem(TOKEN_EXPIRY_KEY)
+    removeCookieToken()
   }
 }
 
-function setTokenExpiry(expiresAt: number): void {
+async function setTokenExpiry(expiresAt: number): Promise<void> {
+  if (isElectron && window.electronAPI) {
+    const currentToken = await getToken()
+    if (currentToken) {
+      electronTokenCache = { token: currentToken, expiry: expiresAt }
+      await window.electronAPI.storeToken(currentToken, expiresAt)
+    }
+    return
+  }
   localStorage.setItem(TOKEN_EXPIRY_KEY, expiresAt.toString())
 }
 
-function isTokenExpired(): boolean {
+async function isTokenExpired(): Promise<boolean> {
+  if (isElectron) {
+    if (!electronTokenCache) {
+      const result = await getToken()
+      if (!result) return true
+    }
+    if (!electronTokenCache?.expiry) return false
+    return Date.now() > electronTokenCache.expiry
+  }
   const expiry = localStorage.getItem(TOKEN_EXPIRY_KEY)
   if (!expiry) return false
   return Date.now() > parseInt(expiry, 10)
 }
 
-function clearAuthStorage(): void {
+async function clearAuthStorage(): Promise<void> {
+  if (isElectron && window.electronAPI) {
+    electronTokenCache = null
+    await window.electronAPI.removeToken()
+    return
+  }
   localStorage.removeItem(TOKEN_KEY)
   localStorage.removeItem(TOKEN_EXPIRY_KEY)
+  removeCookieToken()
+}
+
+export async function hasToken(): Promise<boolean> {
+  return !!(await getToken()) && !(await isTokenExpired())
 }
 
 // Request options interface
@@ -53,9 +125,8 @@ async function request<T>(endpoint: string, options: RequestOptions = {}): Promi
     ...extraHeaders,
   }
 
-  // Inject auth token if available
-  const token = getToken()
-  if (token && !isTokenExpired()) {
+  const token = await getToken()
+  if (token && !(await isTokenExpired())) {
     headers['Authorization'] = `Bearer ${token}`
   }
 
@@ -111,8 +182,8 @@ export const authApi = {
       method: 'POST',
       body: { username, password },
     })
-    setToken(result.access_token)
-    setTokenExpiry(Date.now() + TOKEN_EXPIRY_MS)
+    await setToken(result.access_token)
+    await setTokenExpiry(Date.now() + TOKEN_EXPIRY_MS)
     return result
   },
   login: async (username: string, password: string): Promise<AuthResponse> => {
@@ -120,19 +191,19 @@ export const authApi = {
       method: 'POST',
       body: { username, password },
     })
-    setToken(result.access_token)
-    setTokenExpiry(Date.now() + TOKEN_EXPIRY_MS)
+    await setToken(result.access_token)
+    await setTokenExpiry(Date.now() + TOKEN_EXPIRY_MS)
     return result
   },
   getMe: async (): Promise<AuthUser> => {
-    const token = getToken()
+    const token = await getToken()
     if (!token) {
       throw new ApiError('Not authenticated', 0)
     }
     return await request<AuthUser>('/api/auth/me')
   },
-  logout: () => {
-    clearAuthStorage()
+  logout: async () => {
+    await clearAuthStorage()
   },
 }
 
@@ -274,42 +345,44 @@ export interface QuickImportResult {
 }
 
 export const importApi = {
-  /** 上传TXT文件后台批量导入（异步，从有道爬取释义） */
   importTxt: (file: File, dictId: string) => {
     const formData = new FormData()
     formData.append('file', file)
     formData.append('dictId', dictId)
-    const token = getToken()
-    return fetch(`${API_BASE}/api/import/txt`, {
-      method: 'POST',
-      headers: token && !isTokenExpired() ? { Authorization: `Bearer ${token}` } : {},
-      body: formData,
-    }).then(async (res) => {
+    return (async () => {
+      const token = await getToken()
+      const expired = await isTokenExpired()
+      const res = await fetch(`${API_BASE}/api/import/txt`, {
+        method: 'POST',
+        headers: token && !expired ? { Authorization: `Bearer ${token}` } : {},
+        body: formData,
+      })
       if (!res.ok) {
         const data = await res.json().catch(() => ({ detail: `HTTP ${res.status}` }))
         throw new ApiError(data.detail || `HTTP ${res.status}`, res.status)
       }
       return res.json() as Promise<{ task_id: string; total: number; detail: string }>
-    })
+    })()
   },
 
-  /** 快速导入TXT（同步，仅导入单词文本，不爬取释义） */
   quickImportTxt: (file: File, dictId: string) => {
     const formData = new FormData()
     formData.append('file', file)
     formData.append('dictId', dictId)
-    const token = getToken()
-    return fetch(`${API_BASE}/api/import/quick-txt`, {
-      method: 'POST',
-      headers: token && !isTokenExpired() ? { Authorization: `Bearer ${token}` } : {},
-      body: formData,
-    }).then(async (res) => {
+    return (async () => {
+      const token = await getToken()
+      const expired = await isTokenExpired()
+      const res = await fetch(`${API_BASE}/api/import/quick-txt`, {
+        method: 'POST',
+        headers: token && !expired ? { Authorization: `Bearer ${token}` } : {},
+        body: formData,
+      })
       if (!res.ok) {
         const data = await res.json().catch(() => ({ detail: `HTTP ${res.status}` }))
         throw new ApiError(data.detail || `HTTP ${res.status}`, res.status)
       }
       return res.json() as Promise<QuickImportResult>
-    })
+    })()
   },
 
   /** 查询导入任务进度 */

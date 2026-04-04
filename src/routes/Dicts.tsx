@@ -198,6 +198,7 @@ export default function Dicts() {
   }
 
   return (
+    <>
     <div className="space-y-6">
       {!isAuthenticated && (
         <div className="rounded-xl border bg-amber-50 border-amber-200 p-4 flex items-center gap-3">
@@ -325,6 +326,7 @@ export default function Dicts() {
           ))}
         </div>
       </div>
+    </div>
 
       {/* ── 在线查词弹窗 ── */}
       {showLookup && (
@@ -332,7 +334,7 @@ export default function Dicts() {
           <div className="bg-white rounded-xl w-full max-w-lg p-5 mx-4 max-h-[85vh] overflow-auto" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-semibold">在线查词</h3>
-              <button className="px-2 py-1 border rounded text-xs hover:bg-gray-50" onClick={() => { setShowLookup(false); setLookupResult(null); setLookupQuery('') }}>关闭</button>
+              <button type="button" className="px-2 py-1 border rounded text-xs hover:bg-gray-50 cursor-pointer" onClick={() => { setShowLookup(false); setLookupResult(null); setLookupQuery('') }}>关闭</button>
             </div>
 
             <div className="flex gap-2 mb-4">
@@ -344,6 +346,7 @@ export default function Dicts() {
                 onKeyDown={e => e.key === 'Enter' && handleLookup()}
               />
               <button
+                type="button"
                 className="px-4 py-2 bg-brand-500 text-white rounded-lg text-sm hover:bg-brand-600 disabled:opacity-50"
                 onClick={handleLookup}
                 disabled={lookupLoading}
@@ -424,6 +427,7 @@ export default function Dicts() {
                 )}
 
                 <button
+                  type="button"
                   className="w-full px-4 py-2 bg-brand-500 text-white rounded-lg text-sm hover:bg-brand-600 disabled:opacity-50 transition-colors"
                   onClick={handleSaveLookupWord}
                   disabled={lookupSaving}
@@ -442,7 +446,7 @@ export default function Dicts() {
           <div className="bg-white rounded-xl w-full max-w-md p-5 mx-4" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-semibold">导入词表</h3>
-              <button className="px-2 py-1 border rounded text-xs hover:bg-gray-50" onClick={() => { if (!importing) setShowImport(false) }} disabled={importing}>关闭</button>
+              <button type="button" className="px-2 py-1 border rounded text-xs hover:bg-gray-50 cursor-pointer" onClick={() => setShowImport(false)}>关闭</button>
             </div>
 
             {!isAuthenticated ? (
@@ -450,6 +454,7 @@ export default function Dicts() {
                 <div className="text-amber-600 mb-2">⚠ 需要登录</div>
                 <p className="text-sm text-gray-600 mb-4">请先登录后再导入词表</p>
                 <button
+                  type="button"
                   className="px-4 py-2 bg-brand-500 text-white rounded-lg text-sm hover:bg-brand-600"
                   onClick={() => navigate('/login')}
                 >
@@ -458,7 +463,6 @@ export default function Dicts() {
               </div>
             ) : (
               <div className="space-y-4">
-                {/* 选择目标词典 */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">导入到词典</label>
                   <select
@@ -480,11 +484,11 @@ export default function Dicts() {
                   )}
                 </div>
 
-              {/* 导入模式 */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">导入模式</label>
                 <div className="flex gap-2">
                   <button
+                    type="button"
                     className={`flex-1 px-3 py-2 rounded-lg border-2 text-sm transition-colors ${importMode === 'quick' ? 'border-brand-500 bg-brand-50 text-brand-700' : 'border-gray-200'}`}
                     onClick={() => setImportMode('quick')}
                   >
@@ -492,6 +496,7 @@ export default function Dicts() {
                     <div className="text-xs mt-0.5 opacity-80">直接导入单词文本（≤200词）</div>
                   </button>
                   <button
+                    type="button"
                     className={`flex-1 px-3 py-2 rounded-lg border-2 text-sm transition-colors ${importMode === 'batch' ? 'border-brand-500 bg-brand-50 text-brand-700' : 'border-gray-200'}`}
                     onClick={() => setImportMode('batch')}
                   >
@@ -501,7 +506,6 @@ export default function Dicts() {
                 </div>
               </div>
 
-              {/* 文件选择 */}
               <div>
                 <input
                   type="file"
@@ -511,6 +515,7 @@ export default function Dicts() {
                   className="hidden"
                 />
                 <button
+                  type="button"
                   className="w-full px-4 py-3 border-2 border-dashed border-gray-300 rounded-lg hover:border-brand-400 hover:bg-brand-50 transition-colors text-sm text-gray-600 disabled:opacity-50"
                   onClick={() => txtFileRef.current?.click()}
                   disabled={importing || !selectedDictForImport}
@@ -519,7 +524,6 @@ export default function Dicts() {
                 </button>
               </div>
 
-              {/* 导入进度 */}
               {importTask && importTask.status === 'running' && (
                 <div className="bg-blue-50 rounded-lg p-3">
                   <div className="flex items-center justify-between text-sm mb-2">
@@ -545,7 +549,6 @@ export default function Dicts() {
                 </div>
               )}
 
-              {/* 说明 */}
               <div className="text-xs text-gray-400">
                 <p>支持 UTF-8 编码的 TXT 文件，每行一个英文单词。</p>
                 <p className="mt-1">快速导入仅导入单词文本；智能导入自动从有道词典获取音标、释义、例句等完整信息。</p>
@@ -561,7 +564,7 @@ export default function Dicts() {
           <div className="bg-white rounded-xl w-full max-w-xl p-4 mx-4" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-2">
               <div className="font-semibold">列表</div>
-              <button className="px-2 py-1 border rounded text-xs hover:bg-gray-50 transition-colors" onClick={() => setViewId(undefined)}>关闭</button>
+              <button type="button" className="px-2 py-1 border rounded text-xs hover:bg-gray-50 transition-colors cursor-pointer" onClick={() => setViewId(undefined)}>关闭</button>
             </div>
             <ul className="max-h-96 overflow-auto space-y-2">
               {itemsByDict(viewId).map(w => (
@@ -581,7 +584,7 @@ export default function Dicts() {
           <div className="bg-white rounded-xl w-full max-w-md p-4 mx-4" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-3">
               <div className="font-semibold">快速回顾 {reviewIndex + 1}/{reviewIds.length}</div>
-              <button className="px-2 py-1 border rounded text-xs hover:bg-gray-50 transition-colors" onClick={() => { setReviewIds(undefined); setReviewIndex(0) }}>退出</button>
+              <button type="button" className="px-2 py-1 border rounded text-xs hover:bg-gray-50 transition-colors cursor-pointer" onClick={() => { setReviewIds(undefined); setReviewIndex(0) }}>退出</button>
             </div>
             {(() => {
               const current = words.find(w => w.id === reviewIds[reviewIndex])
@@ -591,7 +594,7 @@ export default function Dicts() {
                   <div className="text-xl font-semibold">{current.term}</div>
                   <div className="text-gray-600">{current.meaning}</div>
                   <div className="mt-4 flex gap-2">
-                    <button className="px-3 py-2 bg-gray-900 text-white rounded hover:bg-gray-800 transition-colors" onClick={() => setReviewIndex(i => Math.min(i + 1, reviewIds.length - 1))}>下一条</button>
+                    <button type="button" className="px-3 py-2 bg-gray-900 text-white rounded hover:bg-gray-800 transition-colors" onClick={() => setReviewIndex(i => Math.min(i + 1, reviewIds.length - 1))}>{"下一条"}</button>
                   </div>
                 </div>
               )
@@ -599,6 +602,6 @@ export default function Dicts() {
           </div>
         </div>
       )}
-    </div>
+    </>
   )
 }

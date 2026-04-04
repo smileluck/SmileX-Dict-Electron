@@ -20,8 +20,8 @@ import VocabularyAnalysis from './routes/VocabularyAnalysis'
 import ErrorBoundary from './components/ErrorBoundary'
 import { ToastProvider } from './components/Toast'
 import SearchDialog from './components/SearchDialog'
-import { clearAuth } from './features/auth/authSlice'
-import { loadUserDicts } from './features/auth/authSlice'
+import { fetchCurrentUser, loadUserDicts, logoutUser } from './features/auth/authSlice'
+import { hasToken } from './services/api'
 import type { RootState } from './store'
 import { useNavigate } from 'react-router-dom'
 
@@ -47,8 +47,16 @@ function App() {
     }
   }, [isAuthenticated, dictDispatch])
 
+  useEffect(() => {
+    if (!isAuthenticated) {
+      hasToken().then(ok => {
+        if (ok) dispatch(fetchCurrentUser())
+      })
+    }
+  }, [])
+
   const handleLogout = () => {
-    dispatch(clearAuth())
+    dispatch(logoutUser())
     navigate('/')
   }
 

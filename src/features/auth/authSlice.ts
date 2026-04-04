@@ -13,6 +13,15 @@ export const fetchCurrentUser = createAsyncThunk<
   return await authApi.getMe()
 })
 
+export const logoutUser = createAsyncThunk<
+  void,
+  void,
+  { state: RootState }
+>('auth/logoutUser', async (_, { dispatch }) => {
+  await authApi.logout()
+  dispatch(clearAuth())
+})
+
 export const loadUserDicts = createAsyncThunk<
   DictItem[],
   void,
@@ -60,7 +69,6 @@ const authSlice = createSlice({
       state.isAuthenticated = true
       state.loading = false
       state.error = null
-      localStorage.setItem('smilex_dict_token', action.payload.token)
     },
     clearAuth(state) {
       state.token = null
@@ -68,7 +76,6 @@ const authSlice = createSlice({
       state.isAuthenticated = false
       state.loading = false
       state.error = null
-      localStorage.removeItem('smilex_dict_token')
     },
     setError(state, action: PayloadAction<string>) {
       state.error = action.payload
@@ -87,7 +94,6 @@ const authSlice = createSlice({
       state.isAuthenticated = false
       state.token = null
       state.user = null
-      localStorage.removeItem('smilex_dict_token')
     })
     builder.addCase(loadUserDicts.fulfilled, (state, action) => {
       // 词典加载成功,合并到mine中

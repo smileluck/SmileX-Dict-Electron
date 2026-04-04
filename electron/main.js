@@ -1,5 +1,6 @@
-const { app, BrowserWindow, Menu, shell, ipcMain, dialog } = require('electron')
+const { app, BrowserWindow, Menu, shell, ipcMain, dialog, safeStorage } = require('electron')
 const path = require('path')
+const fs = require('fs')
 
 // Keep a global reference of the window object
 let mainWindow = null
@@ -154,6 +155,14 @@ function createWindow() {
   })
 }
 
+function getTokenPath() {
+  return path.join(app.getPath('userData'), 'auth-token.bin')
+}
+
+function getTokenExpiryPath() {
+  return path.join(app.getPath('userData'), 'auth-token-expiry.bin')
+}
+
 // IPC handlers
 ipcMain.handle('get-app-version', () => {
   return app.getVersion()
@@ -161,6 +170,54 @@ ipcMain.handle('get-app-version', () => {
 
 ipcMain.handle('get-platform', () => {
   return process.platform
+})
+
+ipcMain.handle('store-token', async (_event, token, expiry) => {
+  try {
+    const encrypted = safeStorage.encryptString(token)
+    fs.writeFileSync(getTokenPath(), encrypted)
+    if (expiry) {
+      const encryptedExpiry = safeStorage.encryptString(String(expiry))
+      fs.writeFileSync(getTokenExpiryPath(), encryptedExpiry)
+    }
+    return true
+  } catch (err) {
+    console.error('Failed to store token:', err)
+    return false
+  }
+})
+
+ipcMain.handle('get-token', async () => {
+  try {
+    const tokenPath = getTokenPath()
+    if (!fs.existsSync(tokenPath)) return null
+    const encrypted = fs.readFileSync(tokenPath)
+    if (!safeStorage.isEncryptionAvailable()) return null
+    const token = safeStorage.decryptString(encrypted)
+    const expiryPath = getTokenExpiryPath()
+    let expiry = null
+    if (fs.existsSync(expiryPath)) {
+      const encryptedExpiry = fs.readFileSync(expiryPath)
+      expiry = safeStorage.decryptString(encryptedExpiry)
+    }
+    return { token, expiry }
+  } catch (err) {
+    console.error('Failed to get token:', err)
+    return null
+  }
+})
+
+ipcMain.handle('remove-token', async () => {
+  try {
+    const tokenPath = getTokenPath()
+    const expiryPath = getTokenExpiryPath()
+    if (fs.existsSync(tokenPath)) fs.unlinkSync(tokenPath)
+    if (fs.existsSync(expiryPath)) fs.unlinkSync(expiryPath)
+    return true
+  } catch (err) {
+    console.error('Failed to remove token:', err)
+    return false
+  }
 })
 
 // App lifecycle

@@ -1,11 +1,11 @@
 import logging
-import sys
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
 from app.database import Base, engine
+from app.logging_config import setup_logging
 from app.middleware import (
     RateLimitMiddleware,
     RequestLoggingMiddleware,
@@ -23,11 +23,7 @@ from app.routers import (
     words,
 )
 
-logging.basicConfig(
-    level=getattr(logging, settings.LOG_LEVEL.upper(), logging.INFO),
-    format="%(asctime)s %(levelname)s [%(name)s] %(message)s",
-    stream=sys.stdout,
-)
+setup_logging()
 
 logger = logging.getLogger("app")
 
@@ -44,7 +40,9 @@ def create_app() -> FastAPI:
     register_exception_handlers(app)
     _init_db(app)
 
-    logger.info(f"{settings.APP_NAME} started (DEBUG={settings.DEBUG})")
+    logger.info(
+        f"{settings.APP_NAME} started (ENV={settings.APP_ENV}, DEBUG={settings.DEBUG})"
+    )
     return app
 
 
