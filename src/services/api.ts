@@ -193,6 +193,7 @@ export interface WordItem {
   term: string
   ipa?: string
   meaning: string
+  enMeaning?: string
   example?: string
   synonyms: string[]
   synonymsNote?: string
@@ -210,12 +211,10 @@ export const wordsApi = {
 }
 
 // Settings API
-export type PracticeMode = 'zh-en' | 'en-en'
 
 export interface UserSettings {
   userId: string
   username: string
-  practiceMode: PracticeMode
   dailyNewWordTarget: number
 }
 

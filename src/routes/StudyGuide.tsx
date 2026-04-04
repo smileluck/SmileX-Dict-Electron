@@ -126,10 +126,10 @@ export default function StudyGuide() {
               <h4 className="font-medium">主动回忆法（Active Recall）</h4>
             </div>
             <p className="text-sm text-gray-600">
-              不要只是反复阅读单词，而是主动尝试回忆。使用"中→英"模式，看到中文释义后努力回忆英文单词，
+              不要只是反复阅读单词，而是主动尝试回忆。看到单词后努力回忆它的含义，
               这种"提取练习"比被动阅读效率高 300%。当你费力回忆起一个单词时，记忆会变得更加牢固。
             </p>
-            <div className="mt-2 text-xs text-brand-600">→ 推荐使用"中→英"模式练习</div>
+            <div className="mt-2 text-xs text-brand-600">→ 推荐使用"打字拼写"练习</div>
           </div>
 
           <div className="border rounded-lg p-4">
@@ -138,10 +138,10 @@ export default function StudyGuide() {
               <h4 className="font-medium">语境记忆法（Context Learning）</h4>
             </div>
             <p className="text-sm text-gray-600">
-              在语境中学习单词比孤立记忆效果好得多。使用"英→英"模式，通过例句理解单词含义，
-              建立英文思维。同时关注同义词的区别，理解单词的使用场景。
+              在语境中学习单词比孤立记忆效果好得多。通过例句和上下文理解单词含义，
+              建立英语思维。适合希望沉浸式学习、提升英语理解能力的同学。
             </p>
-            <div className="mt-2 text-xs text-brand-600">→ 推荐使用"英→英"模式练习</div>
+            <div className="mt-2 text-xs text-brand-600">→ 推荐使用"快速确认"练习</div>
           </div>
 
           <div className="border rounded-lg p-4">

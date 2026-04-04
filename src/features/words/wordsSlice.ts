@@ -7,29 +7,28 @@ export interface WordItem {
   id: string
   term: string
   meaning: string
-  example?: string
-  ipa?: string
-  synonyms?: string[]
-  synonymsNote?: string
+  enMeaning?: string
+    example?: string
+    ipa?: string
+    synonyms?: string[]
+    synonymsNote?: string
   status: WordStatus
   reviewCount: number
-  dictId?: string
-  // Enhanced SM2 algorithm fields
-  efactor: number
-  interval: number
-  nextReviewDate: string
-  lastReviewDate?: string
-  repetitions: number
-  // New enhanced fields for better learning
-  difficulty: number // 1-5 difficulty level
-  importance: number // 1-3 importance level (basic/essential/advanced)
-  category: string // vocabulary category (academic/daily/professional etc.)
-  learningStreak: number // consecutive learning sessions
-  averageQuality: number // average response quality (0-6)
-  lastResponseQuality: number // last response quality
-  fatigueFactor: number // learning fatigue factor (0-1)
-  responseTime: number // average response time in milliseconds
-  contextualReviews: number // number of context-based reviews
+    dictId?: string
+    efactor: number
+    interval: number
+    nextReviewDate: string
+    lastReviewDate?: string
+    repetitions: number
+    difficulty: number
+    importance: number
+    category: string
+    learningStreak: number
+    averageQuality: number
+    lastResponseQuality: number
+    fatigueFactor: number
+    responseTime: number
+    contextualReviews: number
 }
 
 interface WordsState {

@@ -3,12 +3,9 @@ import type { PayloadAction } from '@reduxjs/toolkit'
 import type { RootState } from '../../store'
 import { settingsApi } from '../../services/api'
 
-export type PracticeMode = 'zh-en' | 'en-en'
-
 export interface UserSettings {
   userId: string
   username: string
-  practiceMode: PracticeMode
   dailyNewWordTarget: number
 }
 

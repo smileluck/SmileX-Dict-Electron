@@ -85,6 +85,12 @@ with engine.connect() as conn:
         )
         conn.commit()
 
+    result = conn.execute(text("PRAGMA table_info(words)"))
+    columns = [row[1] for row in result]
+    if "enMeaning" not in columns:
+        conn.execute(text("ALTER TABLE words ADD COLUMN enMeaning TEXT"))
+        conn.commit()
+
 
 # --- Auth Schemas ---
 
@@ -295,6 +301,7 @@ class WordItem(BaseModel):
     term: str
     ipa: Optional[str] = None
     meaning: str
+    enMeaning: Optional[str] = None
     example: Optional[str] = None
     synonyms: List[str] = []
     synonymsNote: Optional[str] = None
@@ -306,6 +313,7 @@ class WordUpdate(BaseModel):
     term: Optional[str] = None
     ipa: Optional[str] = None
     meaning: Optional[str] = None
+    enMeaning: Optional[str] = None
     example: Optional[str] = None
     synonyms: Optional[List[str]] = None
     synonymsNote: Optional[str] = None
@@ -325,6 +333,7 @@ def _word_item_from_model(r: WordItemModel) -> WordItem:
         term=r.term,
         ipa=r.ipa,
         meaning=r.meaning,
+        enMeaning=r.enMeaning,
         example=r.example,
         synonyms=syn,
         synonymsNote=r.synonymsNote,
@@ -361,6 +370,7 @@ def create_word(
         term=word.term,
         ipa=word.ipa,
         meaning=word.meaning,
+        enMeaning=word.enMeaning,
         example=word.example,
         synonyms=synonyms,
         synonymsNote=word.synonymsNote,
@@ -393,6 +403,8 @@ def update_word(
         item.ipa = payload.ipa
     if payload.meaning is not None:
         item.meaning = payload.meaning
+    if payload.enMeaning is not None:
+        item.enMeaning = payload.enMeaning
     if payload.example is not None:
         item.example = payload.example
     if payload.synonyms is not None:
@@ -461,6 +473,7 @@ def bulk_create_words(
             term=word.term,
             ipa=word.ipa,
             meaning=word.meaning,
+            enMeaning=word.enMeaning,
             example=word.example,
             synonyms=synonyms,
             synonymsNote=word.synonymsNote,
@@ -469,8 +482,8 @@ def bulk_create_words(
             userId=current_user.id,
         )
         db.add(item)
+        db.commit()
         result.append(word)
-    db.commit()
     return result
 
 
@@ -697,13 +710,11 @@ def add_event(
 class UserSettings(BaseModel):
     userId: str
     username: str
-    practiceMode: str = "zh-en"
     dailyNewWordTarget: int = 20
 
 
 class UserSettingsUpdate(BaseModel):
     username: Optional[str] = None
-    practiceMode: Optional[str] = None
     dailyNewWordTarget: Optional[int] = None
 
 
@@ -723,7 +734,6 @@ def get_settings(
         settings = UserSettingsModel(
             userId=current_user.id,
             username=current_user.username,
-            practiceMode="zh-en",
             dailyNewWordTarget=20,
         )
         db.add(settings)
@@ -731,7 +741,6 @@ def get_settings(
     return UserSettings(
         userId=settings.userId,
         username=settings.username,
-        practiceMode=settings.practiceMode,
         dailyNewWordTarget=settings.dailyNewWordTarget,
     )
 
@@ -751,15 +760,12 @@ def update_settings(
         settings = UserSettingsModel(
             userId=current_user.id,
             username=current_user.username,
-            practiceMode="zh-en",
             dailyNewWordTarget=20,
         )
         db.add(settings)
 
     if payload.username is not None:
         settings.username = payload.username
-    if payload.practiceMode is not None:
-        settings.practiceMode = payload.practiceMode
     if payload.dailyNewWordTarget is not None:
         settings.dailyNewWordTarget = payload.dailyNewWordTarget
 
@@ -769,7 +775,6 @@ def update_settings(
     return UserSettings(
         userId=settings.userId,
         username=settings.username,
-        practiceMode=settings.practiceMode,
         dailyNewWordTarget=settings.dailyNewWordTarget,
     )
 
@@ -886,6 +891,7 @@ def import_data(
             existing.term = w.term
             existing.ipa = w.ipa
             existing.meaning = w.meaning
+            existing.enMeaning = w.enMeaning
             existing.example = w.example
             existing.synonyms = synonyms
             existing.synonymsNote = w.synonymsNote
@@ -898,6 +904,7 @@ def import_data(
                     term=w.term,
                     ipa=w.ipa,
                     meaning=w.meaning,
+                    enMeaning=w.enMeaning,
                     example=w.example,
                     synonyms=synonyms,
                     synonymsNote=w.synonymsNote,

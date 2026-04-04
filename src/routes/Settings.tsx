@@ -5,7 +5,6 @@ import { useEffect, useState, useRef } from 'react'
 import { settingsApi, dataApi, wordsApi } from '../services/api'
 import type { WordItem as ApiWordItem } from '../services/api'
 import { useToast } from '../components/Toast'
-import type { PracticeMode } from '../services/api'
 import { useTheme } from '../hooks/useTheme'
 
 export default function Settings() {
@@ -14,7 +13,6 @@ export default function Settings() {
   const { theme, setTheme } = useTheme()
   const { settings, loading } = useSelector((s: RootState) => s.settings)
   const [username, setUsername] = useState('')
-  const [practiceMode, setPracticeMode] = useState<PracticeMode>('zh-en')
   const [dailyNewWordTarget, setDailyNewWordTarget] = useState(20)
   const [saving, setSaving] = useState(false)
   const importFileRef = useRef<HTMLInputElement>(null)
@@ -32,7 +30,6 @@ export default function Settings() {
   useEffect(() => {
     if (settings) {
       setUsername(settings.username)
-      setPracticeMode(settings.practiceMode)
       setDailyNewWordTarget(settings.dailyNewWordTarget)
     }
   }, [settings])
@@ -44,7 +41,6 @@ export default function Settings() {
     try {
       const updated = await settingsApi.update({
         username,
-        practiceMode,
         dailyNewWordTarget,
       })
       dispatch(updateSettings(updated))
@@ -180,35 +176,6 @@ export default function Settings() {
       <div className="rounded-xl border bg-white p-6">
         <h3 className="text-lg font-medium mb-4">学习设置</h3>
         <div className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">单词背诵模式</label>
-            <div className="flex gap-3">
-              <button
-                className={`px-4 py-2 rounded-lg border-2 transition-colors ${
-                  practiceMode === 'zh-en'
-                    ? 'border-brand-500 bg-brand-50 text-brand-700'
-                    : 'border-gray-200 hover:border-gray-300'
-                }`}
-                onClick={() => setPracticeMode('zh-en')}
-              >
-                中英模式
-              </button>
-              <button
-                className={`px-4 py-2 rounded-lg border-2 transition-colors ${
-                  practiceMode === 'en-en'
-                    ? 'border-brand-500 bg-brand-50 text-brand-700'
-                    : 'border-gray-200 hover:border-gray-300'
-                }`}
-                onClick={() => setPracticeMode('en-en')}
-              >
-                英英模式
-              </button>
-            </div>
-            <p className="text-xs text-gray-500 mt-2">
-              {practiceMode === 'zh-en' ? '显示中文释义，输入对应的英文单词' : '显示英文单词和例句，选择正确的释义'}
-            </p>
-          </div>
-
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               每日新词学习目标

@@ -7,7 +7,7 @@ import SpeakButton from '../components/SpeakButton'
 import { statsApi } from '../services/api'
 import { getLearningQueue, getFatigueWarning, getLearningSuggestion } from '../utils/priorityQueue'
 
-type Mode = 'type' | 'confirm' | 'zh-en' | 'en-en'
+type Mode = 'type' | 'confirm'
 
 export default function PracticeWords() {
   const dispatch = useDispatch()
@@ -17,19 +17,9 @@ export default function PracticeWords() {
   const [mode, setMode] = useState<Mode>('type')
   const [selectedDictId, setSelectedDictId] = useState<string | undefined>(dicts.activeId)
   const responseTimeRef = useRef(performance.now())
-
-  useEffect(() => {
-    if (settings?.practiceMode === 'zh-en') {
-      setMode('zh-en')
-    } else if (settings?.practiceMode === 'en-en') {
-      setMode('en-en')
-    }
-  }, [settings?.practiceMode])
   const [index, setIndex] = useState(0)
   const [input, setInput] = useState('')
   const [result, setResult] = useState<'correct' | 'wrong' | undefined>(undefined)
-  const [selectedOption, setSelectedOption] = useState<number | null>(null)
-  const [options, setOptions] = useState<string[]>([])
 
   const allDicts = useMemo(() => {
     const special = dicts.mine.filter(d => ['collected', 'wrong', 'mastered'].includes(d.id))
@@ -63,23 +53,9 @@ export default function PracticeWords() {
     responseTimeRef.current = performance.now()
   }, [index])
 
-  const generateOptions = useCallback((correctMeaning: string) => {
-    const otherWords = words.filter(w => w.id !== current?.id && w.meaning && w.meaning !== correctMeaning)
-    const shuffled = [...otherWords].sort(() => Math.random() - 0.5)
-    const distractors = shuffled.slice(0, 3).map(w => w.meaning)
-    while (distractors.length < 3) {
-      distractors.push('—')
-    }
-    const allOptions = [correctMeaning, ...distractors].sort(() => Math.random() - 0.5)
-    setOptions(allOptions)
-    setSelectedOption(null)
-  }, [words, current])
-
   const next = useCallback(() => {
     setInput('')
     setResult(undefined)
-    setSelectedOption(null)
-    setOptions([])
     setIndex(i => (i + 1) % queue.length)
     responseTimeRef.current = performance.now()
   }, [queue.length])
@@ -89,23 +65,44 @@ export default function PracticeWords() {
     setIndex(0)
     setInput('')
     setResult(undefined)
-    setSelectedOption(null)
-    setOptions([])
   }
 
   const handleModeChange = (newMode: Mode) => {
     setMode(newMode)
     setInput('')
     setResult(undefined)
-    setSelectedOption(null)
-    setOptions([])
-    if (newMode === 'en-en' && current) {
-      generateOptions(current.meaning)
-    }
   }
 
   const sendEvent = (type: 'new' | 'review' | 'dictation' | 'wrong') => {
     statsApi.addEvent({ type }).catch(() => {})
+  }
+
+  const calculateSimilarity = (s1: string, s2: string): number => {
+    if (s1 === s2) return 1.0
+    if (s1.length === 0 || s2.length === 0) return 0.0
+
+    const matrix: number[][] = []
+    for (let i = 0; i <= s2.length; i++) {
+      matrix[i] = [i]
+    }
+    for (let j = 0; j <= s1.length; j++) {
+      matrix[0][j] = j
+    }
+
+    for (let i = 1; i <= s2.length; i++) {
+      for (let j = 1; j <= s1.length; j++) {
+        const cost = s2.charAt(i - 1) === s1.charAt(j - 1) ? 0 : 1
+        matrix[i][j] = Math.min(
+          matrix[i - 1][j] + 1,
+          matrix[i][j - 1] + 1,
+          matrix[i - 1][j - 1] + cost
+        )
+      }
+    }
+
+    const distance = matrix[s2.length][s1.length]
+    const maxLength = Math.max(s1.length, s2.length)
+    return 1 - distance / maxLength
   }
 
   const submitType = () => {
@@ -151,69 +148,6 @@ export default function PracticeWords() {
     setResult(ok ? 'correct' : 'wrong')
   }
 
-  const submitZhEn = () => {
-    if (!current) return
-
-    const wasNew = current.status === 'new'
-    const userInput = input.trim().toLowerCase()
-    const correctTerm = current.term.toLowerCase()
-    const ok = userInput === correctTerm
-
-    let quality: number
-    const responseTime = responseTimeRef.current > 0 ? Math.round(performance.now() - responseTimeRef.current) : 0
-
-    if (ok) {
-      quality = responseTime < 3000 ? 5 : 4
-    } else {
-      const similarity = calculateSimilarity(userInput, correctTerm)
-      quality = similarity > 0.8 ? 2 : similarity > 0.5 ? 1 : 0
-    }
-
-    dispatch(reviewWord({ 
-      wordId: current.id, 
-      quality,
-      responseTime,
-      learningContext: 'recall'
-    }))
-    sendEvent('review')
-
-    if (wasNew && ok) {
-      sendEvent('new')
-    }
-    if (!ok) {
-      sendEvent('wrong')
-    }
-
-    setResult(ok ? 'correct' : 'wrong')
-  }
-
-  const submitEnEn = (optionIdx: number) => {
-    if (!current || result) return
-
-    const selected = options[optionIdx]
-    const ok = selected === current.meaning
-    const wasNew = current.status === 'new'
-    
-    const quality = ok ? 4 : 1
-
-    dispatch(reviewWord({ 
-      wordId: current.id, 
-      quality,
-      learningContext: 'multiple_choice'
-    }))
-    sendEvent('review')
-
-    if (wasNew && ok) {
-      sendEvent('new')
-    }
-    if (!ok) {
-      sendEvent('wrong')
-    }
-
-    setSelectedOption(optionIdx)
-    setResult(ok ? 'correct' : 'wrong')
-  }
-
   const submitConfirm = (ok: boolean) => {
     if (!current) return
 
@@ -245,10 +179,12 @@ export default function PracticeWords() {
 
   const handleNextFromResult = () => {
     next()
-    if (mode === 'en-en' && queue[(index + 1) % queue.length]) {
-      generateOptions(queue[(index + 1) % queue.length].meaning)
-    }
   }
+
+  const modeButtons: { key: Mode; label: string }[] = [
+    { key: 'type', label: '打字拼写' },
+    { key: 'confirm', label: '快速确认' },
+  ]
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -259,12 +195,6 @@ export default function PracticeWords() {
           }
         }
         return
-      }
-      if (mode === 'en-en' && !result && options.length >= 4) {
-        const num = parseInt(e.key)
-        if (num >= 1 && num <= 4) {
-          submitEnEn(num - 1)
-        }
       }
       if (mode === 'confirm' && current) {
         if (e.key === '1') submitConfirm(true)
@@ -277,48 +207,13 @@ export default function PracticeWords() {
     }
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [mode, result, options, current])
-
-  const calculateSimilarity = (s1: string, s2: string): number => {
-    if (s1 === s2) return 1.0
-    if (s1.length === 0 || s2.length === 0) return 0.0
-
-    const matrix: number[][] = []
-    for (let i = 0; i <= s2.length; i++) {
-      matrix[i] = [i]
-    }
-    for (let j = 0; j <= s1.length; j++) {
-      matrix[0][j] = j
-    }
-
-    for (let i = 1; i <= s2.length; i++) {
-      for (let j = 1; j <= s1.length; j++) {
-        const cost = s2.charAt(i - 1) === s1.charAt(j - 1) ? 0 : 1
-        matrix[i][j] = Math.min(
-          matrix[i - 1][j] + 1,
-          matrix[i][j - 1] + 1,
-          matrix[i - 1][j - 1] + cost
-        )
-      }
-    }
-
-    const distance = matrix[s2.length][s1.length]
-    const maxLength = Math.max(s1.length, s2.length)
-    return 1 - distance / maxLength
-  }
+  }, [mode, result, current])
 
   const isCollected = current?.status === 'collected'
   const isWrong = current?.status === 'wrong'
   
   const fatigueWarning = current ? getFatigueWarning(current) : null
   const learningSuggestion = current ? getLearningSuggestion(current) : null
-
-  const modeButtons: { key: Mode; label: string }[] = [
-    { key: 'type', label: '打字拼写' },
-    { key: 'confirm', label: '快速确认' },
-    { key: 'zh-en', label: '中→英' },
-    { key: 'en-en', label: '英→英' },
-  ]
 
   if (queue.length === 0) {
     return (
@@ -403,51 +298,17 @@ export default function PracticeWords() {
       <div className="rounded-xl border bg-white p-4">
         <div className="flex items-start justify-between">
           <div className="flex-1">
-            {mode === 'zh-en' ? (
-              <>
-                <div className="text-lg font-semibold text-gray-700">
-                  {current?.meaning}
-                </div>
-                {current?.ipa && <div className="text-gray-500 text-sm mt-1">{current.ipa}</div>}
-                {result && (
-                  <div className="mt-2">
-                    <div className="text-2xl font-semibold flex items-center gap-2">
-                      <Icon name="dict" /> <span>{current?.term}</span>
-                      <SpeakButton text={current?.term || ''} />
-                    </div>
-                    {current?.example && <div className="mt-1 text-sm text-gray-700">例句：{current.example}</div>}
-                    {current?.synonyms && current.synonyms.length > 0 && <div className="mt-1 text-sm text-gray-700">同义：{current.synonyms.join(', ')}</div>}
-                  </div>
-                )}
-              </>
-            ) : mode === 'en-en' ? (
-              <>
-                <div className="text-2xl font-semibold flex items-center gap-2">
-                  <Icon name="dict" /> <span>{current?.term}</span>
-                  <SpeakButton text={current?.term || ''} />
-                </div>
-                {current?.ipa && <div className="text-gray-500">{current.ipa}</div>}
-                {current?.example && <div className="mt-2 text-sm text-gray-700">例句：{current.example}</div>}
-                {result && (
-                  <div className="mt-2 p-2 rounded bg-gray-50">
-                    <div className="text-sm font-medium text-gray-700">释义：{current?.meaning}</div>
-                    {current?.synonymsNote && <div className="mt-1 text-xs text-gray-500">区别：{current.synonymsNote}</div>}
-                  </div>
-                )}
-              </>
-            ) : (
-              <>
-                <div className="text-2xl font-semibold flex items-center gap-2">
-                  <Icon name="dict" /> <span>{current?.term}</span>
-                  <SpeakButton text={current?.term || ''} />
-                </div>
-                <div className="text-gray-600">{current?.ipa}</div>
-                <div className="mt-2">{current?.meaning}</div>
-                {current?.example && <div className="mt-2 text-sm text-gray-700">例句：{current.example}</div>}
-                {current?.synonyms && current.synonyms.length > 0 && <div className="mt-1 text-sm text-gray-700">同义：{current.synonyms.join(', ')}</div>}
-                {current?.synonymsNote && <div className="mt-1 text-xs text-gray-500">区别：{current.synonymsNote}</div>}
-              </>
-            )}
+            <>
+              <div className="text-2xl font-semibold flex items-center gap-2">
+                <Icon name="dict" /> <span>{current?.term}</span>
+                <SpeakButton text={current?.term || ''} />
+              </div>
+              <div className="text-gray-600">{current?.ipa}</div>
+              <div className="mt-2">{current?.meaning}</div>
+              {current?.example && <div className="mt-2 text-sm text-gray-700">例句：{current.example}</div>}
+              {current?.synonyms && current.synonyms.length > 0 && <div className="mt-1 text-sm text-gray-700">同义：{current.synonyms.join(', ')}</div>}
+              {current?.synonymsNote && <div className="mt-1 text-xs text-gray-500">区别：{current.synonymsNote}</div>}
+            </>
           </div>
 
           <div className="flex gap-1 ml-3">
@@ -481,73 +342,6 @@ export default function PracticeWords() {
               </div>
             )}
           </div>
-        ) : mode === 'zh-en' ? (
-          <div className="mt-4">
-            <input
-              className="w-full border rounded px-3 py-2"
-              placeholder="输入对应的英文单词"
-              value={input}
-              onChange={e => setInput(e.target.value)}
-              onKeyDown={e => e.key === 'Enter' && !result && submitZhEn()}
-              disabled={!!result}
-            />
-            <div className="mt-3 flex gap-2">
-              {!result ? (
-                <button className="px-3 py-2 bg-gray-900 text-white rounded hover:bg-gray-800 transition-colors" onClick={submitZhEn}>确认</button>
-              ) : (
-                <button className="px-3 py-2 bg-brand-500 text-white rounded hover:bg-brand-600 transition-colors" onClick={handleNextFromResult}>下一个</button>
-              )}
-              {!result && (
-                <button className="px-3 py-2 border rounded hover:bg-gray-50 transition-colors" onClick={handleNextFromResult}>跳过</button>
-              )}
-            </div>
-            {result && (
-              <div className={`mt-3 text-sm font-medium ${result === 'correct' ? 'text-green-600' : 'text-red-600'}`}>
-                {result === 'correct' ? '✓ 正确' : `✗ 错误，正确答案：${current?.term}`}
-              </div>
-            )}
-          </div>
-        ) : mode === 'en-en' ? (
-          <div className="mt-4">
-            {options.length >= 4 ? (
-              <div className="grid grid-cols-1 gap-2">
-                {options.map((opt, idx) => {
-                  const isSelected = selectedOption === idx
-                  const isCorrect = opt === current?.meaning
-                  let btnClass = 'border rounded-lg p-3 text-left transition-colors text-sm '
-                  if (result) {
-                    if (isCorrect) {
-                      btnClass += 'bg-green-50 border-green-400 text-green-700'
-                    } else if (isSelected && !isCorrect) {
-                      btnClass += 'bg-red-50 border-red-400 text-red-700'
-                    } else {
-                      btnClass += 'bg-gray-50 border-gray-200 text-gray-400'
-                    }
-                  } else {
-                    btnClass += 'hover:bg-brand-50 hover:border-brand-300 cursor-pointer'
-                  }
-                  return (
-                    <button
-                      key={idx}
-                      className={btnClass}
-                      onClick={() => submitEnEn(idx)}
-                      disabled={!!result}
-                    >
-                      <span className="font-medium mr-2 text-gray-400">{String.fromCharCode(65 + idx)}.</span>
-                      {opt}
-                    </button>
-                  )
-                })}
-              </div>
-            ) : (
-              <div className="text-sm text-gray-400 text-center py-2">词库中单词不足，无法生成选项</div>
-            )}
-            {result && (
-              <div className="mt-3 flex gap-2">
-                <button className="px-3 py-2 bg-brand-500 text-white rounded hover:bg-brand-600 transition-colors" onClick={handleNextFromResult}>下一个</button>
-              </div>
-            )}
-          </div>
         ) : (
           <div className="mt-4 flex gap-2">
             <button className="px-3 py-2 bg-green-600 text-white rounded hover:bg-green-700 transition-colors" onClick={() => submitConfirm(true)}>掌握</button>
@@ -559,8 +353,6 @@ export default function PracticeWords() {
         <div className="mt-3 flex gap-3 text-xs text-gray-400">
           <span>快捷键：</span>
           {mode === 'type' && <span>Enter 确认/下一个</span>}
-          {mode === 'zh-en' && <span>Enter 确认/下一个</span>}
-          {mode === 'en-en' && <span>1-4 选择 · Enter 下一个</span>}
           {mode === 'confirm' && <span>1 掌握 · 2 不掌握 · 3 跳过</span>}
         </div>
       </div>

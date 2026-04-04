@@ -27,6 +27,7 @@ class WordItemModel(Base):
     term = Column(String, nullable=False)
     ipa = Column(String)
     meaning = Column(Text, nullable=False)
+    enMeaning = Column(Text)
     example = Column(Text)
     synonyms = Column(Text)
     synonymsNote = Column(Text)
