@@ -3,6 +3,7 @@ import { useSelector } from 'react-redux'
 import type { RootState } from '../store'
 import { wordsApi } from '../services/api'
 import { useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 
 interface SearchDialogProps {
   open: boolean
@@ -19,6 +20,7 @@ interface SearchResult {
 }
 
 export default function SearchDialog({ open, onClose }: SearchDialogProps) {
+  const { t } = useTranslation()
   const [query, setQuery] = useState('')
   const [results, setResults] = useState<SearchResult[]>([])
   const [loading, setLoading] = useState(false)
@@ -92,7 +94,7 @@ export default function SearchDialog({ open, onClose }: SearchDialogProps) {
             <input
               ref={inputRef}
               className="flex-1 outline-none text-lg"
-              placeholder="搜索单词..."
+              placeholder={t('search.placeholder')}
               value={query}
               onChange={e => { setQuery(e.target.value); setSelectedIndex(0) }}
             />
@@ -100,9 +102,9 @@ export default function SearchDialog({ open, onClose }: SearchDialogProps) {
           </div>
         </div>
         <div className="max-h-80 overflow-y-auto">
-          {loading && <div className="p-4 text-center text-gray-400 text-sm">搜索中...</div>}
+          {loading && <div className="p-4 text-center text-gray-400 text-sm">{t('search.searching')}</div>}
           {!loading && query && results.length === 0 && (
-            <div className="p-4 text-center text-gray-400 text-sm">未找到相关单词</div>
+            <div className="p-4 text-center text-gray-400 text-sm">{t('search.noResults')}</div>
           )}
           {results.map((r, i) => (
             <button
@@ -124,7 +126,7 @@ export default function SearchDialog({ open, onClose }: SearchDialogProps) {
                   r.status === 'collected' ? 'bg-amber-100 text-amber-700' :
                   'bg-gray-100 text-gray-600'
                 }`}>
-                  {r.status === 'mastered' ? '已掌握' : r.status === 'wrong' ? '错词' : r.status === 'collected' ? '收藏' : '学习中'}
+                  {r.status === 'mastered' ? t('vocabAnalysis.mastered') : r.status === 'wrong' ? t('vocabAnalysis.wrong') : r.status === 'collected' ? t('collections.title') : t('vocabAnalysis.learning')}
                 </span>
               )}
             </button>
@@ -132,8 +134,8 @@ export default function SearchDialog({ open, onClose }: SearchDialogProps) {
         </div>
         {results.length > 0 && (
           <div className="p-3 border-t text-xs text-gray-400 flex gap-4">
-            <span>↑↓ 导航</span>
-            <span>↵ 选择</span>
+            <span>{t('search.navigate')}</span>
+            <span>{t('search.select')}</span>
           </div>
         )}
       </div>

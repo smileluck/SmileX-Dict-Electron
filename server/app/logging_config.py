@@ -1,7 +1,7 @@
 import json
 import logging
 import logging.config
-import os
+import logging.handlers
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
@@ -29,7 +29,7 @@ class _DevFormatter(logging.Formatter):
         ]
         name = record.name
         msg = record.getMessage()
-        line = f"{ts} {level} [{name}] {msg}"
+        line = f"{ts} {level} [{name}:{record.module}:{record.lineno}] {msg}"
         if record.exc_info and record.exc_info[1] is not None:
             line += "\n" + self.formatException(record.exc_info)
         return line
@@ -43,6 +43,8 @@ class _JsonFormatter(logging.Formatter):
             ).isoformat(),
             "level": record.levelname,
             "logger": record.name,
+            "module": record.module,
+            "lineno": record.lineno,
             "message": record.getMessage(),
             "environment": settings.APP_ENV,
         }
@@ -62,7 +64,7 @@ def _log_dir() -> Path:
     return d
 
 
-def _dev_config(level: int) -> dict:
+def _dev_config(level: int, log_dir: Path) -> dict:
     return {
         "version": 1,
         "disable_existing_loggers": False,
@@ -73,9 +75,21 @@ def _dev_config(level: int) -> dict:
                 "stream": "ext://sys.stdout",
                 "formatter": "dev",
             },
+            "file": {
+                "class": "logging.handlers.RotatingFileHandler",
+                "filename": str(log_dir / "app.log"),
+                "maxBytes": 10 * 1024 * 1024,
+                "backupCount": 5,
+                "encoding": "utf-8",
+                "formatter": "dev",
+            },
         },
         "loggers": {
-            "app": {"handlers": ["console"], "level": level, "propagate": False},
+            "app": {
+                "handlers": ["console", "file"],
+                "level": level,
+                "propagate": False,
+            },
             "uvicorn": {
                 "handlers": ["console"],
                 "level": "WARNING",
@@ -143,8 +157,9 @@ def _prod_config(level: int, log_dir: Path) -> dict:
 
 def setup_logging() -> None:
     level = _resolve_level()
+    log_dir = _log_dir()
     if settings.is_production:
-        cfg = _prod_config(level, _log_dir())
+        cfg = _prod_config(level, log_dir)
     else:
-        cfg = _dev_config(level)
+        cfg = _dev_config(level, log_dir)
     logging.config.dictConfig(cfg)

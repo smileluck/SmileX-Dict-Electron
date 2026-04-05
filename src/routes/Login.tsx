@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useDispatch } from 'react-redux'
+import { useTranslation } from 'react-i18next'
 import { setAuth, loadUserDicts } from '../features/auth/authSlice'
 import { authApi } from '../services/api'
 import { useToast } from '../components/Toast'
@@ -8,6 +9,7 @@ import { useToast } from '../components/Toast'
 type Tab = 'login' | 'register'
 
 export default function Login() {
+  const { t } = useTranslation()
   const [tab, setTab] = useState<Tab>('login')
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
@@ -17,27 +19,26 @@ export default function Login() {
   const location = useLocation()
   const { showToast } = useToast()
 
-  // Get the page user came from, default to home
   const from = (location.state as { from?: string })?.from || '/'
 
   const validatePassword = (pwd: string): { valid: boolean; message?: string } => {
     if (pwd.length < 8 || pwd.length > 64) {
-      return { valid: false, message: '密码需要 8-64 个字符' }
+      return { valid: false, message: t('login.passwordLengthError') }
     }
     if (!/[A-Z]/.test(pwd)) {
-      return { valid: false, message: '密码需要包含大写字母' }
+      return { valid: false, message: t('login.passwordUpperError') }
     }
     if (!/[a-z]/.test(pwd)) {
-      return { valid: false, message: '密码需要包含小写字母' }
+      return { valid: false, message: t('login.passwordLowerError') }
     }
     if (!/[0-9]/.test(pwd)) {
-      return { valid: false, message: '密码需要包含数字' }
+      return { valid: false, message: t('login.passwordNumberError') }
     }
     if (!/[!@#]/.test(pwd)) {
-      return { valid: false, message: '密码需要包含特殊字符(!@#)' }
+      return { valid: false, message: t('login.passwordSpecialError') }
     }
     if (/[^a-zA-Z0-9!@#]/.test(pwd)) {
-      return { valid: false, message: '密码只能包含字母、数字和特殊字符(!@#)' }
+      return { valid: false, message: t('login.passwordCharError') }
     }
     return { valid: true }
   }
@@ -56,37 +57,37 @@ export default function Login() {
     if (/[!@#]/.test(pwd)) score += 20
 
     if (score < 40) {
-      return { score, label: '弱', color: 'bg-red-500' }
+      return { score, label: t('login.strengthWeak'), color: 'bg-red-500' }
     } else if (score < 60) {
-      return { score, label: '中', color: 'bg-yellow-500' }
+      return { score, label: t('login.strengthMedium'), color: 'bg-yellow-500' }
     } else if (score < 80) {
-      return { score, label: '良', color: 'bg-blue-500' }
+      return { score, label: t('login.strengthGood'), color: 'bg-blue-500' }
     } else {
-      return { score, label: '强', color: 'bg-green-500' }
+      return { score, label: t('login.strengthStrong'), color: 'bg-green-500' }
     }
   }
 
   const passwordStrength = getPasswordStrength(password)
 
   const passwordRequirements = [
-    { id: 'length', label: '8-64 个字符', check: password.length >= 8 },
-    { id: 'upper', label: '大写字母', check: /[A-Z]/.test(password) },
-    { id: 'lower', label: '小写字母', check: /[a-z]/.test(password) },
-    { id: 'number', label: '数字', check: /[0-9]/.test(password) },
-    { id: 'special', label: '特殊字符(!@#)', check: /[!@#]/.test(password) },
+    { id: 'length', label: t('login.reqLength'), check: password.length >= 8 },
+    { id: 'upper', label: t('login.reqUpper'), check: /[A-Z]/.test(password) },
+    { id: 'lower', label: t('login.reqLower'), check: /[a-z]/.test(password) },
+    { id: 'number', label: t('login.reqNumber'), check: /[0-9]/.test(password) },
+    { id: 'special', label: t('login.reqSpecial'), check: /[!@#]/.test(password) },
   ]
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
     if (username.length < 3 || username.length > 32) {
-      showToast('用户名需要 3-32 个字符', 'error')
+      showToast(t('login.usernameLengthError'), 'error')
       return
     }
 
     const passwordValidation = validatePassword(password)
     if (!passwordValidation.valid) {
-      showToast(passwordValidation.message || '密码格式不正确', 'error')
+      showToast(passwordValidation.message || t('login.passwordFormatError'), 'error')
       return
     }
 
@@ -98,10 +99,10 @@ export default function Login() {
 
       dispatch(setAuth({ token: result.access_token, user: result.user }))
       dispatch(loadUserDicts())
-      showToast(tab === 'login' ? '登录成功' : '注册成功', 'success')
+      showToast(tab === 'login' ? t('login.loginSuccess') : t('login.registerSuccess'), 'success')
       navigate(from, { replace: true })
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : '操作失败'
+      const message = err instanceof Error ? err.message : t('login.operationFailed')
       showToast(message, 'error')
     } finally {
       setLoading(false)
@@ -114,11 +115,10 @@ export default function Login() {
         <div className="flex items-center gap-2 mb-6">
           <img src="/smilex.svg" alt="SmileX" className="w-8 h-8" />
           <h2 className="text-xl font-semibold">
-            {tab === 'login' ? '登录' : '注册'} SmileX Dict
+            {tab === 'login' ? t('login.login') : t('login.register')} SmileX Dict
           </h2>
         </div>
 
-        {/* Tab Switcher */}
         <div className="flex border-b mb-6">
           <button
             className={`flex-1 py-2 text-sm font-medium border-b-2 transition-colors ${
@@ -128,7 +128,7 @@ export default function Login() {
             }`}
             onClick={() => setTab('login')}
           >
-            登录
+            {t('login.login')}
           </button>
           <button
             className={`flex-1 py-2 text-sm font-medium border-b-2 transition-colors ${
@@ -138,21 +138,20 @@ export default function Login() {
             }`}
             onClick={() => setTab('register')}
           >
-            注册
+            {t('login.register')}
           </button>
         </div>
 
-        {/* Form */}
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              用户名
+              {t('login.username')}
             </label>
             <input
               type="text"
               value={username}
               onChange={e => setUsername(e.target.value)}
-              placeholder="3-32 个字符"
+              placeholder={t('login.usernamePlaceholder')}
               className="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
               autoComplete="username"
               required
@@ -163,13 +162,13 @@ export default function Login() {
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              密码
+              {t('login.password')}
             </label>
             <input
               type="password"
               value={password}
               onChange={e => setPassword(e.target.value)}
-              placeholder="8-64 个字符"
+              placeholder={t('login.passwordPlaceholder')}
               className="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
               autoComplete={tab === 'login' ? 'current-password' : 'new-password'}
               required
@@ -179,7 +178,7 @@ export default function Login() {
 
             {tab === 'login' && (
               <p className="mt-1 text-xs text-gray-500">
-                密码要求：8-64个字符，包含大小写字母、数字和特殊字符
+                {t('login.passwordRequirements')}
               </p>
             )}
 
@@ -193,7 +192,7 @@ export default function Login() {
                     />
                   </div>
                   <span className="text-xs font-medium text-gray-600 w-12">
-                    {passwordStrength.label || '密码强度'}
+                    {passwordStrength.label || t('login.passwordStrength')}
                   </span>
                 </div>
 
@@ -223,15 +222,15 @@ export default function Login() {
             disabled={loading}
             className="w-full py-2.5 bg-brand-500 text-white rounded-lg font-medium text-sm hover:bg-brand-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {loading ? '请稍候...' : tab === 'login' ? '登录' : '注册'}
+            {loading ? t('login.pleaseWait') : tab === 'login' ? t('login.login') : t('login.register')}
           </button>
         </form>
 
         <p className="mt-4 text-center text-xs text-gray-500">
           {tab === 'login' ? (
-            <>还没有账号？<button className="text-brand-500 hover:underline" onClick={() => setTab('register')}>立即注册</button></>
+            <>{t('login.noAccount')}<button className="text-brand-500 hover:underline" onClick={() => setTab('register')}>{t('login.registerNow')}</button></>
           ) : (
-            <>已有账号？<button className="text-brand-500 hover:underline" onClick={() => setTab('login')}>去登录</button></>
+            <>{t('login.hasAccount')}<button className="text-brand-500 hover:underline" onClick={() => setTab('login')}>{t('login.goLogin')}</button></>
           )}
         </p>
       </div>

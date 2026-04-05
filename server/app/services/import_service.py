@@ -272,13 +272,19 @@ def _run_txt_import(task_id: str, words: list[str], dict_id: str, user_id: str):
             _import_tasks[task_id]["skipped"] = skipped_count
 
     except Exception as e:
-        db.rollback()
+        try:
+            db.rollback()
+        except Exception:
+            pass
         logger.exception(f"Import task {task_id} failed")
         with _import_lock:
             _import_tasks[task_id]["status"] = "failed"
             _import_tasks[task_id]["error"] = str(e)
     finally:
-        db.close()
+        try:
+            db.close()
+        except Exception:
+            pass
 
 
 def start_txt_import(db: Session, words: list[str], dict_id: str, user_id: str) -> dict:

@@ -1,4 +1,4 @@
-from typing import Optional
+import uuid
 
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
@@ -17,9 +17,8 @@ def list_dicts(db: Session, user_id: str) -> list[DictItem]:
 
 
 def create_dict(db: Session, payload: DictCreate, user_id: str) -> DictItem:
-    count = db.query(DictItemModel).filter(DictItemModel.userId == user_id).count()
     item = DictItemModel(
-        id=f"d{count + 1}",
+        id=f"d{uuid.uuid4().hex[:12]}",
         name=payload.name,
         wordCount=payload.wordCount,
         source="custom",

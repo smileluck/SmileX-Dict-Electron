@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useSelector } from 'react-redux'
+import { useTranslation } from 'react-i18next'
 import type { RootState } from '../store'
 import WordAnalysis from '../components/vocabulary/WordAnalysis'
 import AcademicCategories from '../components/vocabulary/AcademicCategories'
@@ -13,6 +14,7 @@ import Icon from '../components/Icon'
 type TabKey = 'analysis' | 'writing' | 'path' | 'network'
 
 export default function VocabularyAnalysis() {
+  const { t } = useTranslation()
   const words = useSelector((s: RootState) => s.words.items)
   const [activeTab, setActiveTab] = useState<TabKey>('analysis')
   const [selectedWordId, setSelectedWordId] = useState<string | null>(null)
@@ -20,26 +22,24 @@ export default function VocabularyAnalysis() {
   const selectedWord = words.find(w => w.id === selectedWordId)
 
   const tabs: { key: TabKey; label: string; icon: string }[] = [
-    { key: 'analysis', label: '词汇分析', icon: 'search' },
-    { key: 'writing', label: '写作词汇', icon: 'pencil' },
-    { key: 'path', label: '学习路径', icon: 'map' },
-    { key: 'network', label: '词汇网络', icon: 'share' },
+    { key: 'analysis', label: t('vocabAnalysis.analysis'), icon: 'search' },
+    { key: 'writing', label: t('vocabAnalysis.writing'), icon: 'pencil' },
+    { key: 'path', label: t('vocabAnalysis.path'), icon: 'map' },
+    { key: 'network', label: t('vocabAnalysis.network'), icon: 'share' },
   ]
 
   return (
     <div className="space-y-4 page-enter">
-      {/* Page header */}
       <div className="flex items-center justify-between">
         <h2 className="text-2xl font-semibold flex items-center gap-2">
           <Icon name="academic-cap" size={24} className="text-brand-600" />
-          英语专业学习中心
+          {t('vocabAnalysis.title')}
         </h2>
         <div className="text-sm text-gray-500">
-          共 {words.length} 词 | 已掌握 {words.filter(w => w.status === 'mastered').length} 词
+          {t('vocabAnalysis.totalWords', { count: words.length })} | {t('vocabAnalysis.masteredWords', { count: words.filter(w => w.status === 'mastered').length })}
         </div>
       </div>
 
-      {/* Tab navigation */}
       <div className="flex border-b">
         {tabs.map(tab => (
           <button
@@ -57,13 +57,11 @@ export default function VocabularyAnalysis() {
         ))}
       </div>
 
-      {/* Tab content */}
       {activeTab === 'analysis' && (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-          {/* Word selector */}
           <div className="lg:col-span-1">
             <div className="rounded-xl border bg-white p-4">
-              <h3 className="font-medium text-gray-700 mb-3">选择单词</h3>
+              <h3 className="font-medium text-gray-700 mb-3">{t('vocabAnalysis.selectWord')}</h3>
               <div className="space-y-1 max-h-96 overflow-y-auto">
                 {words.map(word => (
                   <button
@@ -87,10 +85,10 @@ export default function VocabularyAnalysis() {
                         }`}
                       >
                         {word.status === 'mastered'
-                          ? '已掌握'
+                          ? t('vocabAnalysis.mastered')
                           : word.status === 'wrong'
-                          ? '错词'
-                          : '学习中'}
+                          ? t('vocabAnalysis.wrong')
+                          : t('vocabAnalysis.learning')}
                       </span>
                     </div>
                     <div className="text-xs text-gray-400 truncate">{word.meaning}</div>
@@ -100,28 +98,20 @@ export default function VocabularyAnalysis() {
             </div>
           </div>
 
-          {/* Analysis content */}
           <div className="lg:col-span-2 space-y-4">
             {selectedWord ? (
               <>
-                {/* Enhanced word card */}
                 <EnhancedCard word={selectedWord} />
-
-                {/* Pronunciation exercise */}
                 <PronunciationExercise word={selectedWord} />
-
-                {/* Word analysis (root/affix) */}
                 <WordAnalysis word={selectedWord} />
-
-                {/* Academic categories */}
                 <AcademicCategories word={selectedWord} />
               </>
             ) : (
               <div className="rounded-xl border bg-white p-8 text-center">
                 <Icon name="search" size={32} className="mx-auto mb-3 text-gray-300" />
-                <p className="text-gray-500">请从左侧选择一个单词开始分析</p>
+                <p className="text-gray-500">{t('vocabAnalysis.selectWordHint')}</p>
                 <p className="text-sm text-gray-400 mt-1">
-                  支持词根词缀分析、学术分类、发音练习等功能
+                  {t('vocabAnalysis.selectWordDesc')}
                 </p>
               </div>
             )}

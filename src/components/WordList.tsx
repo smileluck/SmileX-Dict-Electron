@@ -1,6 +1,7 @@
 import { useSelector, useDispatch } from 'react-redux'
 import type { RootState } from '../store'
 import { toggleCollect, markMastered, markWrong } from '../features/words/wordsSlice'
+import { useTranslation } from 'react-i18next'
 import Icon from './Icon'
 import type { WordStatus } from '../features/words/wordsSlice'
 
@@ -13,6 +14,7 @@ interface WordListProps {
 }
 
 export default function WordList({ status, title, emptyText, icon, iconClass }: WordListProps) {
+  const { t } = useTranslation()
   const dispatch = useDispatch()
   const words = useSelector((s: RootState) => s.words.items)
   const filtered = words.filter(w => w.status === status)
@@ -22,7 +24,7 @@ export default function WordList({ status, title, emptyText, icon, iconClass }: 
       <div className="flex items-center gap-2">
         <Icon name={icon} className={iconClass} size={24} />
         <h2 className="text-lg font-semibold">{title}</h2>
-        <span className="text-sm text-gray-500">({filtered.length}个词)</span>
+        <span className="text-sm text-gray-500">({t('wordList.wordsCount', { count: filtered.length })})</span>
       </div>
 
       {filtered.length === 0 ? (
@@ -42,10 +44,10 @@ export default function WordList({ status, title, emptyText, icon, iconClass }: 
                   </div>
                   <div className="text-gray-700 mt-1">{w.meaning}</div>
                   {w.example && (
-                    <div className="text-sm text-gray-500 mt-1">例句：{w.example}</div>
+                    <div className="text-sm text-gray-500 mt-1">{t('wordList.example', { text: w.example })}</div>
                   )}
                   <div className="text-xs text-gray-400 mt-1">
-                    复习 {w.reviewCount} 次 · 间隔 {w.interval} 天
+                    {t('wordList.reviewInfo', { count: w.reviewCount, days: w.interval })}
                   </div>
                 </div>
                 <div className="flex gap-1 ml-3">
@@ -53,7 +55,7 @@ export default function WordList({ status, title, emptyText, icon, iconClass }: 
                     <button
                       className="px-2 py-1 border rounded text-xs hover:bg-brand-50"
                       onClick={() => dispatch(toggleCollect(w.id))}
-                      title="收藏"
+                      title={t('wordList.collect')}
                     >
                       <Icon name="star" size={14} className="text-brand-500" />
                     </button>
@@ -62,7 +64,7 @@ export default function WordList({ status, title, emptyText, icon, iconClass }: 
                     <button
                       className="px-2 py-1 border rounded text-xs hover:bg-green-50"
                       onClick={() => dispatch(markMastered(w.id))}
-                      title="标记已掌握"
+                      title={t('wordList.markMastered')}
                     >
                       <Icon name="check" size={14} className="text-green-600" />
                     </button>
@@ -71,7 +73,7 @@ export default function WordList({ status, title, emptyText, icon, iconClass }: 
                     <button
                       className="px-2 py-1 border rounded text-xs hover:bg-red-50"
                       onClick={() => dispatch(markWrong(w.id))}
-                      title="加入错词本"
+                      title={t('wordList.addToWrongBook')}
                     >
                       <Icon name="wrong" size={14} className="text-red-600" />
                     </button>

@@ -6,7 +6,7 @@ class WordItem(BaseModel):
     id: str
     term: str
     ipa: Optional[str] = None
-    meaning: str
+    meaning: str = ""
     enMeaning: Optional[str] = None
     example: Optional[str] = None
     synonyms: List[str] = []

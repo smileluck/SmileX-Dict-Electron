@@ -61,12 +61,11 @@ server/.venv/
 .coverage
 htmlcov/
 
-# Database (uncomment if you want to ignore database files)
-# smilex.db
-# *.db
-# *.db-journal
-# *.db-wal
-# *.db-shm
+# Database
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
 
 # IDE
 .vscode/

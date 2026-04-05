@@ -3,11 +3,13 @@ import type { RootState } from '../store'
 import { Link } from 'react-router-dom'
 import Icon from '../components/Icon'
 import { useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { setArticles } from '../features/articles/articlesSlice'
 import { articlesApi } from '../services/api'
 import Loading from '../components/Loading'
 
 export default function Library() {
+  const { t } = useTranslation()
   const dispatch = useDispatch()
   const items = useSelector((s: RootState) => s.articles.items)
   const isAuthenticated = useSelector((s: RootState) => s.auth.isAuthenticated)
@@ -24,13 +26,13 @@ export default function Library() {
         })
         .catch(err => {
           console.warn('Failed to fetch articles:', err)
-          setError('无法连接到服务器')
+          setError(t('library.serverError'))
         })
         .finally(() => setLoading(false))
     } else {
       setLoading(false)
     }
-  },[dispatch, isAuthenticated])
+  },[dispatch, isAuthenticated, t])
 
   return (
     <div className="space-y-6">
@@ -41,7 +43,7 @@ export default function Library() {
           </div>
           <div className="flex-1">
             <p className="text-sm text-amber-800">
-              您正在以<strong>访客模式</strong>浏览书籍。登录后可以添加和管理自己的文章/书籍，使用全部功能。
+              <span dangerouslySetInnerHTML={{ __html: t('library.guestWarning') }} />
             </p>
           </div>
         </div>
@@ -49,34 +51,34 @@ export default function Library() {
 
       <div className="rounded-xl border bg-white p-4">
         <div className="flex items-center justify-between">
-          <h3 className="font-semibold">我的文章/书籍</h3>
+          <h3 className="font-semibold">{t('library.myArticles')}</h3>
           {isAuthenticated && (
             <Link to="/library/new" className="px-3 py-2 bg-brand-500 text-white rounded inline-flex items-center gap-1 hover:bg-brand-600 transition-colors">
-              <Icon name="book"/> 添加书籍/文章
+              <Icon name="book"/> {t('library.addBook')}
             </Link>
           )}
         </div>
 
         {loading ? (
-          <Loading text="加载文章列表..." />
+          <Loading text={t('library.loadArticles')} />
         ) : error ? (
           <div className="text-center py-8">
             <div className="text-amber-600 text-sm mb-2">⚠ {error}</div>
-            <div className="text-gray-500 text-sm">显示本地缓存数据</div>
+            <div className="text-gray-500 text-sm">{t('library.showLocalCache')}</div>
           </div>
         ) : null}
 
         <div className="grid md:grid-cols-2 gap-3 mt-4">
           {items.map(a => (
             <div key={a.id} className="rounded border p-3 hover:shadow-sm transition-shadow">
-              <div className="text-xs text-gray-500 mb-1">{a.type==='book'?'书籍':'文章'}</div>
+              <div className="text-xs text-gray-500 mb-1">{a.type==='book'?t('library.book'):t('library.article')}</div>
               <div className="font-medium">{a.title}</div>
               <div className="text-sm text-gray-600 line-clamp-2">{a.content}</div>
             </div>
           ))}
           {items.length===0 && !loading && (
             <div className="text-gray-500 col-span-2 text-center py-8">
-              {isAuthenticated ? '暂无内容，点击上方按钮添加' : '请登录以查看和管理您的书籍'}
+              {isAuthenticated ? t('library.emptyAuthenticated') : t('library.emptyGuest')}
             </div>
           )}
         </div>

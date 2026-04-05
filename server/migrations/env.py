@@ -1,64 +1,61 @@
-[alembic]
-scriptlogging.basicConfig(level=logging.INFO)
-# alembic env.py
-for Alembic migrations
- AlembicMigration
-from logging import engine
-from sqlalchemy import engine
-from alembic.config import Config
-from alembic import context
-from alembic.script import produce_migrations
+import logging
+import sys
+from pathlib import Path
 
+from sqlalchemy import create_engine, text
+
+from app.config import settings
 from app.database import Base
 
-from app.models import *  # noqa: F401 - needed for all models
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
- target_metadata = target_metadata
+import app.models  # noqa: F401, E402
 
-    return else:
-        url = config.get_main_option(opts.url)
-        return alembicConfig(
-            "sqlalchemy.url": settings.DATABASE_URL.replace("sqlite:///", "sqlite:///"),
-            "version_table": "smilex_dict",
-            "sqlalchemy.url": settings.DATABASE_URL,
-            "version_table": "words",
-            "sqlalchemy.url": settings.DATABASE_URL.replace("sqlite:///", "sqlite:///"),
-        )
+target_metadata = Base.metadata
 
+
+def get_engine():
+    return create_engine(
+        settings.DATABASE_URL,
+        connect_args={"check_same_thread": False},
     )
 
-    target_metadata.create_all(engine)
+
+def run_upgrade(engine):
+    from migrations.add_enhanced_fields import upgrade
+
+    with engine.connect() as conn:
+        for stmt in upgrade():
+            try:
+                conn.execute(text(stmt))
+            except Exception:
+                logger.warning(f"Column may already exist, skipping: {stmt}")
+        conn.commit()
+    logger.info("Upgrade completed.")
 
 
-    # Run Alembic migrations
-    connection.run_migrations()
+def run_downgrade(engine):
+    from migrations.add_enhanced_fields import downgrade
 
-def run_migrations():
-    command = alembic upgrade head
-    connection.run_migrations()
+    with engine.connect() as conn:
+        for stmt in downgrade():
+            try:
+                conn.execute(text(stmt))
+            except Exception:
+                logger.warning(f"Column may not exist, skipping: {stmt}")
+        conn.commit()
+    logger.info("Downgrade completed.")
 
 
 if __name__ == "__main__":
-    alembic.command_parser()
-        parser.add_arg("--description", "description", help="Run the migrations manually (development)")
-        parser.add_argument("--sqlalchemy-url", help="Database URL (overrides config)")
-        parser.add_argument("--autogenerate", "-G", action="store_true, autogenerate migration from models metadata")
-    args = parser.parse_args()
-    if not args.url:
-        args.url = config.get_main_option("sqlalchemy.url")
-        process_url_for a in (f"{args.url}", sqlalchemy.create_engine(url))
-        url = f"{url}?sqlite:///{url}")
-        return url
+    action = sys.argv[1] if len(sys.argv) > 1 else "upgrade"
+    engine = get_engine()
 
-    command = alembic_upgrade(url, do_upgrade()
-        alembic downgrade(connection)
-    if args.revision:
-        raise ValueError(f"Can't downgrade: revision {revision}!")
-    command = alembic downgrade(revision)
-        args.revision = revision
-    connection.run_migrations()
-
-if __name__ == "__main__":
-    print("Downgrading database...")
-    for migration in downgrade():
-        print(f"Running: {migration}")
+    if action == "upgrade":
+        run_upgrade(engine)
+    elif action == "downgrade":
+        run_downgrade(engine)
+    else:
+        print(f"Usage: python {sys.argv[0]} [upgrade|downgrade]")
+        sys.exit(1)

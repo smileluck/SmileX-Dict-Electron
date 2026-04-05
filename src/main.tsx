@@ -4,13 +4,14 @@ import { Provider } from 'react-redux'
 import { PersistGate } from 'redux-persist/integration/react'
 import { store, persistor } from './store'
 import { BrowserRouter } from 'react-router-dom'
+import './i18n'
 import './index.css'
 import App from './App'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <Provider store={store}>
-      <PersistGate loading={<div className="min-h-screen flex items-center justify-center"><div className="text-gray-500">加载中...</div></div>} persistor={persistor}>
+      <PersistGate loading={<div className="min-h-screen flex items-center justify-center"><div className="text-gray-500">Loading...</div></div>} persistor={persistor}>
         <BrowserRouter>
           <App />
         </BrowserRouter>

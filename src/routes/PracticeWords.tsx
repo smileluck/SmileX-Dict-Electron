@@ -1,6 +1,7 @@
 import { useSelector, useDispatch } from 'react-redux'
 import type { RootState } from '../store'
 import { useMemo, useState, useCallback, useEffect, useRef } from 'react'
+import { useTranslation } from 'react-i18next'
 import { reviewWord, toggleCollect, markWrong } from '../features/words/wordsSlice'
 import Icon from '../components/Icon'
 import SpeakButton from '../components/SpeakButton'
@@ -10,6 +11,7 @@ import { getLearningQueue, getFatigueWarning, getLearningSuggestion } from '../u
 type Mode = 'type' | 'confirm'
 
 export default function PracticeWords() {
+  const { t } = useTranslation()
   const dispatch = useDispatch()
   const words = useSelector((s: RootState) => s.words.items)
   const dicts = useSelector((s: RootState) => s.dicts)
@@ -182,8 +184,8 @@ export default function PracticeWords() {
   }
 
   const modeButtons: { key: Mode; label: string }[] = [
-    { key: 'type', label: '打字拼写' },
-    { key: 'confirm', label: '快速确认' },
+    { key: 'type', label: t('practice.typingMode') },
+    { key: 'confirm', label: t('practice.confirmMode') },
   ]
 
   useEffect(() => {
@@ -219,23 +221,23 @@ export default function PracticeWords() {
     return (
       <div className="space-y-4">
         <div className="rounded-xl border bg-white p-4">
-          <label className="block text-sm font-medium text-gray-700 mb-2">选择词典</label>
+          <label className="block text-sm font-medium text-gray-700 mb-2">{t('practice.selectDict')}</label>
           <select
             className="w-full border rounded px-3 py-2 text-sm"
             value={selectedDictId || ''}
             onChange={e => handleDictChange(e.target.value)}
           >
-            <option value="">全部单词</option>
+            <option value="">{t('practice.allWords')}</option>
             {allDicts.map(d => (
-              <option key={d.id} value={d.id}>{d.name} ({d.wordCount}词)</option>
+              <option key={d.id} value={d.id}>{d.name} ({t('practice.wordsUnit', { count: d.wordCount })})</option>
             ))}
           </select>
         </div>
 
         <div className="rounded-xl border bg-white p-8 text-center">
           <div className="text-gray-400 text-4xl mb-3">📚</div>
-          <div className="text-gray-500 mb-2">暂无需要复习的单词</div>
-          <div className="text-sm text-gray-400">请在词典页面选择一个词库开始学习，或切换到其他词典</div>
+          <div className="text-gray-500 mb-2">{t('practice.noWordsTitle')}</div>
+          <div className="text-sm text-gray-400">{t('practice.noWordsHint')}</div>
         </div>
       </div>
     )
@@ -250,9 +252,9 @@ export default function PracticeWords() {
             value={selectedDictId || ''}
             onChange={e => handleDictChange(e.target.value)}
           >
-            <option value="">全部单词</option>
+            <option value="">{t('practice.allWords')}</option>
             {allDicts.map(d => (
-              <option key={d.id} value={d.id}>{d.name} ({d.wordCount}词)</option>
+              <option key={d.id} value={d.id}>{d.name} ({t('practice.wordsUnit', { count: d.wordCount })})</option>
             ))}
           </select>
         </div>
@@ -305,9 +307,9 @@ export default function PracticeWords() {
               </div>
               <div className="text-gray-600">{current?.ipa}</div>
               <div className="mt-2">{current?.meaning}</div>
-              {current?.example && <div className="mt-2 text-sm text-gray-700">例句：{current.example}</div>}
-              {current?.synonyms && current.synonyms.length > 0 && <div className="mt-1 text-sm text-gray-700">同义：{current.synonyms.join(', ')}</div>}
-              {current?.synonymsNote && <div className="mt-1 text-xs text-gray-500">区别：{current.synonymsNote}</div>}
+              {current?.example && <div className="mt-2 text-sm text-gray-700">{t('practice.example')}{current.example}</div>}
+              {current?.synonyms && current.synonyms.length > 0 && <div className="mt-1 text-sm text-gray-700">{t('practice.synonyms')}{current.synonyms.join(', ')}</div>}
+              {current?.synonymsNote && <div className="mt-1 text-xs text-gray-500">{t('practice.difference')}{current.synonymsNote}</div>}
             </>
           </div>
 
@@ -315,14 +317,14 @@ export default function PracticeWords() {
             <button
               className={`p-2 rounded border transition-colors ${isCollected ? 'bg-amber-100 border-amber-400 text-amber-600' : 'hover:bg-gray-50 text-gray-400'}`}
               onClick={handleToggleCollect}
-              title={isCollected ? '取消收藏' : '收藏'}
+              title={isCollected ? t('practice.uncollect') : t('practice.collect')}
             >
               <Icon name="star" size={16} className={isCollected ? 'text-amber-500' : 'text-gray-400'} />
             </button>
             <button
               className={`p-2 rounded border transition-colors ${isWrong ? 'bg-red-100 border-red-400 text-red-600' : 'hover:bg-gray-50 text-gray-400'}`}
               onClick={handleMarkWrong}
-              title="加入错词本"
+              title={t('practice.addToWrongBook')}
             >
               <Icon name="wrong" size={16} className={isWrong ? 'text-red-500' : 'text-gray-400'} />
             </button>
@@ -331,29 +333,29 @@ export default function PracticeWords() {
 
         {mode === 'type' ? (
           <div className="mt-4">
-            <input className="w-full border rounded px-3 py-2" placeholder="输入拼写" value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && !result && submitType()} />
+            <input className="w-full border rounded px-3 py-2" placeholder={t('practice.inputPlaceholder')} value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && !result && submitType()} />
             <div className="mt-3 flex gap-2">
-              <button className="px-3 py-2 bg-gray-900 text-white rounded hover:bg-gray-800 transition-colors" onClick={submitType} disabled={!!result}>确认</button>
-              <button className="px-3 py-2 border rounded hover:bg-gray-50 transition-colors" onClick={handleNextFromResult}>跳过</button>
+              <button className="px-3 py-2 bg-gray-900 text-white rounded hover:bg-gray-800 transition-colors" onClick={submitType} disabled={!!result}>{t('practice.confirm')}</button>
+              <button className="px-3 py-2 border rounded hover:bg-gray-50 transition-colors" onClick={handleNextFromResult}>{t('practice.skip')}</button>
             </div>
             {result && (
               <div className={`mt-3 text-sm font-medium ${result === 'correct' ? 'text-green-600' : 'text-red-600'}`}>
-                {result === 'correct' ? '✓ 正确' : `✗ 错误，正确答案：${current?.term}`}
+                {result === 'correct' ? t('practice.correct') : t('practice.wrong', { term: current?.term })}
               </div>
             )}
           </div>
         ) : (
           <div className="mt-4 flex gap-2">
-            <button className="px-3 py-2 bg-green-600 text-white rounded hover:bg-green-700 transition-colors" onClick={() => submitConfirm(true)}>掌握</button>
-            <button className="px-3 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition-colors" onClick={() => submitConfirm(false)}>不掌握</button>
-            <button className="px-3 py-2 border rounded hover:bg-gray-50 transition-colors" onClick={next}>下一条</button>
+            <button className="px-3 py-2 bg-green-600 text-white rounded hover:bg-green-700 transition-colors" onClick={() => submitConfirm(true)}>{t('practice.mastered')}</button>
+            <button className="px-3 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition-colors" onClick={() => submitConfirm(false)}>{t('practice.notMastered')}</button>
+            <button className="px-3 py-2 border rounded hover:bg-gray-50 transition-colors" onClick={next}>{t('practice.next')}</button>
           </div>
         )}
 
         <div className="mt-3 flex gap-3 text-xs text-gray-400">
-          <span>快捷键：</span>
-          {mode === 'type' && <span>Enter 确认/下一个</span>}
-          {mode === 'confirm' && <span>1 掌握 · 2 不掌握 · 3 跳过</span>}
+          <span>{t('practice.shortcuts')}</span>
+          {mode === 'type' && <span>{t('practice.shortcutType')}</span>}
+          {mode === 'confirm' && <span>{t('practice.shortcutConfirm')}</span>}
         </div>
       </div>
     </div>

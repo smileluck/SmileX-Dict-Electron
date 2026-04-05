@@ -1,3 +1,5 @@
+import uuid
+
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 
@@ -20,11 +22,8 @@ def list_articles(db: Session, user_id: str) -> list[ArticleItem]:
 
 
 def create_article(db: Session, payload: ArticleCreate, user_id: str) -> ArticleItem:
-    count = (
-        db.query(ArticleItemModel).filter(ArticleItemModel.userId == user_id).count()
-    )
     item = ArticleItemModel(
-        id=f"a{count + 1}",
+        id=f"a{uuid.uuid4().hex[:12]}",
         title=payload.title,
         content=payload.content,
         contentZh=payload.contentZh,

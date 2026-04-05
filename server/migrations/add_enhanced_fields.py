@@ -78,11 +78,36 @@ def downgrade():
 
 
 if __name__ == "__main__":
-    # For manual testing
-    print("Upgrading database...")
-    for migration in upgrade():
-        print(f"Running: {migration}")
+    import sys
+    from sqlalchemy import create_engine, text
+    from app.config import settings
 
-    print("Downgrading database...")
-    for migration in downgrade():
-        print(f"Running: {migration}")
+    action = sys.argv[1] if len(sys.argv) > 1 else "upgrade"
+    engine = create_engine(
+        settings.DATABASE_URL, connect_args={"check_same_thread": False}
+    )
+
+    if action == "upgrade":
+        print("Upgrading database...")
+        with engine.connect() as conn:
+            for stmt in upgrade():
+                try:
+                    conn.execute(text(stmt))
+                    print(f"  OK: {stmt}")
+                except Exception as e:
+                    print(f"  SKIP: {stmt} ({e})")
+            conn.commit()
+        print("Upgrade completed.")
+    elif action == "downgrade":
+        print("Downgrading database...")
+        with engine.connect() as conn:
+            for stmt in downgrade():
+                try:
+                    conn.execute(text(stmt))
+                    print(f"  OK: {stmt}")
+                except Exception as e:
+                    print(f"  SKIP: {stmt} ({e})")
+            conn.commit()
+        print("Downgrade completed.")
+    else:
+        print(f"Usage: python {sys.argv[0]} [upgrade|downgrade]")

@@ -6,6 +6,7 @@ import { settingsApi, dataApi, wordsApi, lookupApi } from '../services/api'
 import type { WordItem as ApiWordItem } from '../services/api'
 import { useToast } from '../components/Toast'
 import { useTheme } from '../hooks/useTheme'
+import { useTranslation } from 'react-i18next'
 
 export default function Settings() {
   const dispatch = useDispatch<AppDispatch>()
@@ -25,6 +26,7 @@ export default function Settings() {
   const [targetDictId, setTargetDictId] = useState('')
   const dicts = useSelector((s: RootState) => s.dicts.mine)
   const isAuthenticated = useSelector((s: RootState) => s.auth.isAuthenticated)
+  const { t, i18n } = useTranslation()
 
   useEffect(() => {
     if (!settings) {
@@ -49,9 +51,9 @@ export default function Settings() {
         dailyNewWordTarget,
       })
       dispatch(updateSettings(updated))
-      showToast('设置保存成功', 'success')
+      showToast(t('settings.saveSuccess'), 'success')
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : '保存失败，请重试'
+      const errorMessage = error instanceof Error ? error.message : t('settings.saveFailed')
       showToast(errorMessage, 'error')
     } finally {
       setSaving(false)
@@ -69,9 +71,9 @@ export default function Settings() {
       a.download = `smilex-dict-backup-${new Date().toISOString().slice(0, 10)}.json`
       a.click()
       URL.revokeObjectURL(url)
-      showToast('数据导出成功', 'success')
+      showToast(t('settings.exportSuccess'), 'success')
     } catch (error) {
-      showToast('导出失败: ' + (error instanceof Error ? error.message : '未知错误'), 'error')
+      showToast(t('settings.exportFailed', { error: error instanceof Error ? error.message : t('common.error') }), 'error')
     } finally {
       setExporting(false)
     }
@@ -85,9 +87,9 @@ export default function Settings() {
       const text = await file.text()
       const data = JSON.parse(text)
       await dataApi.importAll(data)
-      showToast('数据导入成功，请刷新页面', 'success')
+      showToast(t('settings.importSuccess'), 'success')
     } catch (error) {
-      showToast('导入失败: ' + (error instanceof Error ? error.message : '文件格式错误'), 'error')
+      showToast(t('settings.importFailed', { error: error instanceof Error ? error.message : t('settings.invalidFormat') }), 'error')
     } finally {
       setImporting(false)
       e.target.value = ''
@@ -101,7 +103,7 @@ export default function Settings() {
     try {
       const text = await file.text()
       const lines = text.split('\n').filter(l => l.trim())
-      if (lines.length < 2) throw new Error('CSV 文件至少需要包含标题行和一行数据')
+      if (lines.length < 2) throw new Error(t('settings.csvMinRows'))
       const header = lines[0].split(',').map(h => h.trim().toLowerCase())
       const words: ApiWordItem[] = []
       for (let i = 1; i < lines.length; i++) {
@@ -121,11 +123,11 @@ export default function Settings() {
           dictId: undefined,
         })
       }
-      if (words.length === 0) throw new Error('未找到有效的单词数据')
+      if (words.length === 0) throw new Error(t('settings.csvNoValidWords'))
       await wordsApi.bulkCreate(words)
-      showToast(`成功导入 ${words.length} 个单词`, 'success')
+      showToast(t('settings.csvImportSuccess', { count: words.length }), 'success')
     } catch (error) {
-      showToast('导入失败: ' + (error instanceof Error ? error.message : '文件格式错误'), 'error')
+      showToast(t('settings.importFailed', { error: error instanceof Error ? error.message : t('settings.invalidFormat') }), 'error')
     } finally {
       setCsvImporting(false)
       e.target.value = ''
@@ -155,13 +157,13 @@ export default function Settings() {
     if (!file) return
 
     if (!isAuthenticated) {
-      showToast('请先登录后再导入词表', 'error')
+      showToast(t('settings.loginRequiredForImport'), 'error')
       e.target.value = ''
       return
     }
 
     if (!targetDictId) {
-      showToast('请先选择目标词典', 'error')
+      showToast(t('settings.selectDict'), 'error')
       e.target.value = ''
       return
     }
@@ -170,9 +172,8 @@ export default function Settings() {
     try {
       const text = await file.text()
       const lines = text.split(/\r?\n/).map(l => l.replace(/\ufeff/g, '').trim()).filter(Boolean)
-      if (lines.length === 0) throw new Error('文件为空')
+      if (lines.length === 0) throw new Error(t('settings.emptyFile'))
 
-      // 对每个单词,通过查词API获取释义并导入
       let imported = 0
       let failed = 0
       const batchSize = 5
@@ -190,9 +191,9 @@ export default function Settings() {
         }
       }
 
-      showToast(`TXT导入完成：成功 ${imported} 个，失败 ${failed} 个`, imported > 0 ? 'success' : 'error')
+      showToast(t('settings.txtImportResult', { imported, failed }), imported > 0 ? 'success' : 'error')
     } catch (error) {
-      showToast('导入失败: ' + (error instanceof Error ? error.message : '文件格式错误'), 'error')
+      showToast(t('settings.importFailed', { error: error instanceof Error ? error.message : t('settings.invalidFormat') }), 'error')
     } finally {
       setTxtImporting(false)
       e.target.value = ''
@@ -202,37 +203,37 @@ export default function Settings() {
   if (!settings && loading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <div className="text-gray-400">加载中...</div>
+        <div className="text-gray-400">{t('common.loading')}</div>
       </div>
     )
   }
 
   return (
     <div className="max-w-2xl mx-auto space-y-6">
-      <h2 className="text-2xl font-semibold">个人设置</h2>
+      <h2 className="text-2xl font-semibold">{t('settings.title')}</h2>
 
       <div className="rounded-xl border bg-white p-6">
-        <h3 className="text-lg font-medium mb-4">用户信息</h3>
+        <h3 className="text-lg font-medium mb-4">{t('settings.userInfo')}</h3>
         <div className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">用户名</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">{t('settings.username')}</label>
             <input
               type="text"
               className="w-full border rounded px-3 py-2"
               value={username}
               onChange={e => setUsername(e.target.value)}
-              placeholder="请输入用户名"
+              placeholder={t('settings.usernamePlaceholder')}
             />
           </div>
         </div>
       </div>
 
       <div className="rounded-xl border bg-white p-6">
-        <h3 className="text-lg font-medium mb-4">学习设置</h3>
+        <h3 className="text-lg font-medium mb-4">{t('settings.learningSettings')}</h3>
         <div className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              每日新词学习目标
+              {t('settings.dailyNewWordTarget')}
             </label>
             <input
               type="number"
@@ -243,55 +244,79 @@ export default function Settings() {
               onChange={e => setDailyNewWordTarget(parseInt(e.target.value) || 20)}
             />
             <p className="text-xs text-gray-500 mt-1">
-              每天学习的新词数量（不包括复习单词）
+              {t('settings.dailyNewWordTargetHint')}
             </p>
           </div>
         </div>
       </div>
 
       <div className="rounded-xl border bg-white p-6">
-        <h3 className="text-lg font-medium mb-4">外观设置</h3>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">主题模式</label>
-          <div className="flex gap-3">
-            {([
-              { value: 'light', label: '浅色' },
-              { value: 'dark', label: '深色' },
-              { value: 'system', label: '跟随系统' },
-            ] as const).map(opt => (
-              <button
-                key={opt.value}
-                className={`px-4 py-2 rounded-lg border-2 transition-colors ${
-                  theme === opt.value
-                    ? 'border-brand-500 bg-brand-50 text-brand-700'
-                    : 'border-gray-200 hover:border-gray-300'
-                }`}
-                onClick={() => setTheme(opt.value)}
-              >
-                {opt.label}
-              </button>
-            ))}
+        <h3 className="text-lg font-medium mb-4">{t('settings.appearance')}</h3>
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">{t('settings.themeMode')}</label>
+            <div className="flex gap-3">
+              {([
+                { value: 'light', label: t('settings.themeLight') },
+                { value: 'dark', label: t('settings.themeDark') },
+                { value: 'system', label: t('settings.themeSystem') },
+              ] as const).map(opt => (
+                <button
+                  key={opt.value}
+                  className={`px-4 py-2 rounded-lg border-2 transition-colors ${
+                    theme === opt.value
+                      ? 'border-brand-500 bg-brand-50 text-brand-700'
+                      : 'border-gray-200 hover:border-gray-300'
+                  }`}
+                  onClick={() => setTheme(opt.value)}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">{t('settings.language')}</label>
+            <p className="text-xs text-gray-500 mb-2">{t('settings.languageDesc')}</p>
+            <div className="flex gap-3">
+              {([
+                { value: 'zh', label: '中文' },
+                { value: 'en', label: 'English' },
+              ] as const).map(opt => (
+                <button
+                  key={opt.value}
+                  className={`px-4 py-2 rounded-lg border-2 transition-colors ${
+                    i18n.language === opt.value || (i18n.language?.startsWith('zh') && opt.value === 'zh')
+                      ? 'border-brand-500 bg-brand-50 text-brand-700'
+                      : 'border-gray-200 hover:border-gray-300'
+                  }`}
+                  onClick={() => i18n.changeLanguage(opt.value)}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
       </div>
 
       <div className="rounded-xl border bg-white p-6">
-        <h3 className="text-lg font-medium mb-4">数据管理</h3>
+        <h3 className="text-lg font-medium mb-4">{t('settings.dataManagement')}</h3>
         <div className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">导出学习数据</label>
-            <p className="text-xs text-gray-500 mb-2">将所有学习数据导出为 JSON 文件，用于备份</p>
+            <label className="block text-sm font-medium text-gray-700 mb-2">{t('settings.exportData')}</label>
+            <p className="text-xs text-gray-500 mb-2">{t('settings.exportDesc')}</p>
             <button
               className="px-4 py-2 border rounded-lg hover:bg-gray-50 transition-colors text-sm"
               onClick={handleExport}
               disabled={exporting}
             >
-              {exporting ? '导出中...' : '导出数据'}
+              {exporting ? t('settings.exporting') : t('settings.exportButton')}
             </button>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">导入学习数据</label>
-            <p className="text-xs text-gray-500 mb-2">从 JSON 备份文件恢复学习数据</p>
+            <label className="block text-sm font-medium text-gray-700 mb-2">{t('settings.importData')}</label>
+            <p className="text-xs text-gray-500 mb-2">{t('settings.importDesc')}</p>
             <input
               type="file"
               accept=".json"
@@ -304,12 +329,12 @@ export default function Settings() {
               onClick={() => importFileRef.current?.click()}
               disabled={importing}
             >
-              {importing ? '导入中...' : '导入数据'}
+              {importing ? t('settings.importing') : t('settings.importButton')}
             </button>
           </div>
           <div className="border-t pt-4">
-            <label className="block text-sm font-medium text-gray-700 mb-2">批量导入单词</label>
-            <p className="text-xs text-gray-500 mb-2">从 CSV 文件批量导入单词，格式：term,meaning,ipa,example,synonyms</p>
+            <label className="block text-sm font-medium text-gray-700 mb-2">{t('settings.csvImport')}</label>
+            <p className="text-xs text-gray-500 mb-2">{t('settings.csvImportDesc')}</p>
             <input
               type="file"
               accept=".csv"
@@ -322,36 +347,36 @@ export default function Settings() {
               onClick={() => csvFileRef.current?.click()}
               disabled={csvImporting}
             >
-              {csvImporting ? '导入中...' : '从 CSV 导入'}
+              {csvImporting ? t('settings.importing') : t('settings.csvImportButton')}
             </button>
           </div>
           <div className="border-t pt-4">
-            <label className="block text-sm font-medium text-gray-700 mb-2">从词表文件导入</label>
-            <p className="text-xs text-gray-500 mb-2">从 TXT 文件导入单词列表（每行一个单词），自动从有道词典获取完整释义</p>
+            <label className="block text-sm font-medium text-gray-700 mb-2">{t('settings.txtImport')}</label>
+            <p className="text-xs text-gray-500 mb-2">{t('settings.txtImportDesc')}</p>
             
             {!isAuthenticated ? (
               <div className="text-xs text-amber-600 mb-2">
-                ⚠ 请先登录后再导入词表
+                ⚠ {t('settings.loginRequiredForImport')}
               </div>
             ) : (
               <div className="mb-2">
-                <label className="block text-xs font-medium text-gray-600 mb-1">导入到词典</label>
+                <label className="block text-xs font-medium text-gray-600 mb-1">{t('settings.importToDict')}</label>
                 <select
                   className="w-full border rounded px-3 py-1.5 text-sm"
                   value={targetDictId}
                   onChange={e => setTargetDictId(e.target.value)}
                   disabled={txtImporting}
                 >
-                  <option value="">请选择词典</option>
+                  <option value="">{t('settings.selectDict')}</option>
                   {dicts
                     .filter(d => !['collected', 'wrong', 'mastered'].includes(d.id))
                     .filter(d => d.source === 'custom')
                     .map(d => (
-                      <option key={d.id} value={d.id}>{d.name} ({d.wordCount}词)</option>
+                      <option key={d.id} value={d.id}>{d.name} ({d.wordCount}{t('common.words')})</option>
                     ))}
                 </select>
                 {dicts.filter(d => d.source === 'custom').length === 0 && (
-                  <p className="text-xs text-amber-600 mt-1">您还没有创建词典，请先在词典页面创建</p>
+                  <p className="text-xs text-amber-600 mt-1">{t('settings.noCustomDict')}</p>
                 )}
               </div>
             )}
@@ -368,7 +393,7 @@ export default function Settings() {
               onClick={() => txtFileRef.current?.click()}
               disabled={txtImporting || !isAuthenticated || !targetDictId}
             >
-              {txtImporting ? '导入中...' : '从 TXT 词表导入'}
+              {txtImporting ? t('settings.importing') : t('settings.txtImportButton')}
             </button>
           </div>
         </div>
@@ -382,7 +407,7 @@ export default function Settings() {
           onClick={handleSave}
           disabled={saving}
         >
-          {saving ? '保存中...' : '保存设置'}
+          {saving ? t('common.saving') : t('settings.saveSettings')}
         </button>
       </div>
     </div>

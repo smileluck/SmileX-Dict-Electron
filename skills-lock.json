@@ -15,6 +15,11 @@
       "source": "github/awesome-copilot",
       "sourceType": "github",
       "computedHash": "2b598920b5fdc807c9ee5b69bad23b8327c4ea5f1178c38d3a99a9e06a49e628"
+    },
+    "sqlalchemy-orm": {
+      "source": "bobmatnyc/claude-mpm-skills",
+      "sourceType": "github",
+      "computedHash": "3005549275ad146033bd9037273f2b42e40f1408b0c45f1262f6fcfa5bc1e6a8"
     }
   }
 }

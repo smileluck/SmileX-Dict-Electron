@@ -1,6 +1,7 @@
 import { Routes, Route, NavLink, Navigate, useLocation } from 'react-router-dom'
 import { useState, useRef, useEffect } from 'react'
 import { useSelector, useDispatch } from 'react-redux'
+import { useTranslation } from 'react-i18next'
 import { useAppDispatch } from './hooks/useAppDispatch'
 import Home from './routes/Home'
 import Dicts from './routes/Dicts'
@@ -26,6 +27,7 @@ import type { RootState } from './store'
 import { useNavigate } from 'react-router-dom'
 
 function App() {
+  const { t } = useTranslation()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [moreMenuOpen, setMoreMenuOpen] = useState(false)
   const [mobileMoreMenuOpen, setMobileMoreMenuOpen] = useState(false)
@@ -85,21 +87,21 @@ function App() {
   }, [])
 
   const navLinks = [
-    { to: '/', label: '主页', public: true },
-    { to: '/dicts', label: '词典', public: true },
-    { to: '/library', label: '书籍', public: true },
-    { to: '/vocab-analysis', label: '英语专业学习', public: true },
+    { to: '/', label: t('nav.home'), public: true },
+    { to: '/dicts', label: t('nav.dicts'), public: true },
+    { to: '/library', label: t('nav.library'), public: true },
+    { to: '/vocab-analysis', label: t('nav.vocabAnalysis'), public: true },
   ]
 
   const moreItems = [
-    { to: '/about', label: '关于' },
-    { to: '/study-guide', label: '学习指南' },
+    { to: '/about', label: t('nav.about') },
+    { to: '/study-guide', label: t('nav.studyGuide') },
   ]
 
   const userMenuItems = [
-    { to: '/panel', label: '面板', action: () => {} },
-    { to: '/settings', label: '个人设置', action: () => {} },
-    { label: '登出', action: handleLogout },
+    { to: '/panel', label: t('nav.panel'), action: () => {} },
+    { to: '/settings', label: t('nav.settings'), action: () => {} },
+    { label: t('nav.logout'), action: handleLogout },
   ]
 
   return (
@@ -127,17 +129,17 @@ function App() {
               <button
                 onClick={() => setSearchOpen(true)}
                 className="px-2 py-1 rounded transition-colors flex items-center gap-1 text-gray-500 hover:bg-gray-100"
-                title="搜索 (Ctrl+K)"
+                title={t('nav.searchHint')}
               >
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
-                <span className="text-xs">Ctrl+K</span>
+                <span className="text-xs">{t('nav.ctrlK')}</span>
               </button>
               <div className="relative" ref={moreMenuRef}>
                 <button
                   onClick={() => setMoreMenuOpen(!moreMenuOpen)}
                   className={`px-2 py-1 rounded transition-colors flex items-center gap-1 ${moreMenuOpen ? 'bg-gray-100' : 'hover:bg-gray-100'}`}
                 >
-                  更多
+                  {t('nav.more')}
                   <svg
                     className={`w-4 h-4 text-gray-500 transition-transform ${moreMenuOpen ? 'rotate-180' : ''}`}
                     viewBox="0 0 24 24"
@@ -213,7 +215,7 @@ function App() {
                   state={{ from: location.pathname }}
                   className="px-3 py-1 bg-brand-500 text-white rounded hover:bg-brand-600"
                 >
-                  登录
+                  {t('nav.login')}
                 </NavLink>
               )}
             </nav>
@@ -253,7 +255,7 @@ function App() {
                   className={`w-full flex items-center justify-between px-3 py-2 rounded text-sm transition-colors ${mobileMoreMenuOpen ? 'bg-gray-100' : 'hover:bg-gray-100'}`}
                   onClick={() => setMobileMoreMenuOpen(!mobileMoreMenuOpen)}
                 >
-                  更多
+                  {t('nav.more')}
                   <svg
                     className={`w-4 h-4 text-gray-500 transition-transform ${mobileMoreMenuOpen ? 'rotate-180' : ''}`}
                     viewBox="0 0 24 24"
@@ -336,7 +338,7 @@ function App() {
                   className="block px-3 py-2 mt-2 pt-2 border-t text-center bg-brand-500 text-white rounded"
                   onClick={() => setMobileMenuOpen(false)}
                 >
-                  登录
+                  {t('nav.login')}
                 </NavLink>
               )}
             </nav>

@@ -8,11 +8,13 @@ import { useToast } from '../components/Toast'
 import { lookupApi, importApi, dictsApi } from '../services/api'
 import type { WordLookupResult, ImportTaskInfo } from '../services/api'
 import Loading from '../components/Loading'
+import { useTranslation } from 'react-i18next'
 
 export default function Dicts() {
   const dispatch = useDispatch()
   const navigate = useNavigate()
   const { showToast } = useToast()
+  const { t } = useTranslation()
   const dicts = useSelector((s: RootState) => s.dicts)
   const words = useSelector((s: RootState) => s.words.items)
   const isAuthenticated = useSelector((s: RootState) => s.auth.isAuthenticated)
@@ -20,14 +22,12 @@ export default function Dicts() {
   const [dictsLoading, setDictsLoading] = useState(false)
   const [creatingDict, setCreatingDict] = useState(false)
 
-  // 在线查词
   const [lookupQuery, setLookupQuery] = useState('')
   const [lookupResult, setLookupResult] = useState<WordLookupResult | null>(null)
   const [lookupLoading, setLookupLoading] = useState(false)
   const [lookupSaving, setLookupSaving] = useState(false)
   const [showLookup, setShowLookup] = useState(false)
 
-  // TXT导入
   const txtFileRef = useRef<HTMLInputElement>(null)
   const [importing, setImporting] = useState(false)
   const [importTask, setImportTask] = useState<ImportTaskInfo | null>(null)
@@ -60,7 +60,7 @@ export default function Dicts() {
     if (!name.trim()) return
     
     if (!isAuthenticated) {
-      showToast('请先登录后再创建词典', 'error')
+      showToast(t('dicts.loginToCreate'), 'error')
       return
     }
 
@@ -69,9 +69,9 @@ export default function Dicts() {
       const newDict = await dictsApi.create({ name })
       dispatch(setDicts([newDict]))
       setName('')
-      showToast('词典创建成功', 'success')
+      showToast(t('dicts.dictCreated'), 'success')
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : '创建失败'
+      const errorMessage = error instanceof Error ? error.message : t('dicts.createFailed')
       showToast(errorMessage, 'error')
     } finally {
       setCreatingDict(false)
@@ -98,7 +98,6 @@ export default function Dicts() {
     setReviewIndex(0)
   }
 
-  // ── 在线查词 ──
   const handleLookup = async () => {
     if (!lookupQuery.trim()) return
     setLookupLoading(true)
@@ -107,7 +106,7 @@ export default function Dicts() {
       const result = await lookupApi.lookup(lookupQuery.trim())
       setLookupResult(result)
     } catch (error) {
-      showToast('查词失败: ' + (error instanceof Error ? error.message : '未找到该词'), 'error')
+      showToast(t('dicts.lookupFailed') + ': ' + (error instanceof Error ? error.message : t('dicts.notFound')), 'error')
     } finally {
       setLookupLoading(false)
     }
@@ -118,35 +117,33 @@ export default function Dicts() {
     setLookupSaving(true)
     try {
       await lookupApi.lookup(lookupResult.term, true, dicts.activeId)
-      showToast(`已将 "${lookupResult.term}" 添加到词库`, 'success')
+      showToast(t('dicts.addedToLib', { term: lookupResult.term }), 'success')
     } catch (error) {
-      showToast('保存失败: ' + (error instanceof Error ? error.message : '未知错误'), 'error')
+      showToast(t('dicts.saveFailed') + ': ' + (error instanceof Error ? error.message : t('dicts.unknownError')), 'error')
     } finally {
       setLookupSaving(false)
     }
   }
 
-  // ── TXT导入 ──
   const handleTxtImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
     
     if (!isAuthenticated) {
-      showToast('请先登录后再导入词表', 'error')
+      showToast(t('dicts.loginToImport'), 'error')
       e.target.value = ''
       return
     }
 
     if (!selectedDictForImport) {
-      showToast('请先选择要导入到哪个词典', 'error')
+      showToast(t('dicts.selectDictToImport'), 'error')
       e.target.value = ''
       return
     }
 
-    // 验证选择的词典是后端词典(不是特殊词典)
     const selectedDict = dicts.mine.find(d => d.id === selectedDictForImport)
     if (!selectedDict || ['collected', 'wrong', 'mastered'].includes(selectedDictForImport)) {
-      showToast('请选择一个有效的用户词典', 'error')
+      showToast(t('dicts.selectValidDict'), 'error')
       e.target.value = ''
       return
     }
@@ -158,12 +155,11 @@ export default function Dicts() {
       if (importMode === 'quick') {
         const result = await importApi.quickImportTxt(file, selectedDictForImport)
         showToast(result.detail, 'success')
-        // 重新加载词典列表以更新wordCount
         const serverDicts = await dictsApi.list()
         dispatch(setDicts(serverDicts))
       } else {
         const result = await importApi.importTxt(file, selectedDictForImport)
-        showToast(`已开始导入 ${result.total} 个单词`, 'success')
+        showToast(t('dicts.importStarted', { total: result.total }), 'success')
 
         const poll = setInterval(async () => {
           try {
@@ -171,14 +167,13 @@ export default function Dicts() {
             setImportTask(status)
             if (status.status === 'completed') {
               clearInterval(poll)
-              showToast(`导入完成：成功 ${status.imported}，跳过 ${status.skipped}，失败 ${status.failed}`, 'success')
+              showToast(t('dicts.importComplete', { imported: status.imported, skipped: status.skipped, failed: status.failed }), 'success')
               setImporting(false)
-              // 重新加载词典列表以更新wordCount
               const serverDicts = await dictsApi.list()
               dispatch(setDicts(serverDicts))
             } else if (status.status === 'failed') {
               clearInterval(poll)
-              showToast(`导入失败: ${status.error}`, 'error')
+              showToast(t('dicts.importFailed') + `: ${status.error}`, 'error')
               setImporting(false)
             }
           } catch {
@@ -188,7 +183,7 @@ export default function Dicts() {
         }, 2000)
       }
     } catch (error) {
-      showToast('导入失败: ' + (error instanceof Error ? error.message : '未知错误'), 'error')
+      showToast(t('dicts.importFailed') + ': ' + (error instanceof Error ? error.message : t('dicts.unknownError')), 'error')
     } finally {
       if (importMode === 'quick') {
         setImporting(false)
@@ -207,14 +202,13 @@ export default function Dicts() {
           </div>
           <div className="flex-1">
             <p className="text-sm text-amber-800">
-              您正在以<strong>访客模式</strong>浏览词典。登录后可以创建和管理自己的词典，使用全部功能。
-              <span className="text-amber-900 font-medium cursor-pointer hover:underline ml-1" onClick={() => navigate('/login')}>立即登录</span>
+              {t('dicts.guestWarning')}
+              <span className="text-amber-900 font-medium cursor-pointer hover:underline ml-1" onClick={() => navigate('/login')}>{t('dicts.loginNow')}</span>
             </p>
           </div>
         </div>
       )}
 
-      {/* 在线查词 + TXT导入 快捷操作栏 */}
       <div className="rounded-xl border bg-white p-4">
         <div className="flex items-center gap-3 flex-wrap">
           <button
@@ -222,39 +216,39 @@ export default function Dicts() {
             onClick={() => setShowLookup(true)}
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8" /><path d="M21 21l-4.35-4.35" /></svg>
-            在线查词
+            {t('dicts.onlineLookup')}
           </button>
           <button
             className="px-4 py-2 border rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium flex items-center gap-1.5"
             onClick={() => setShowImport(true)}
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" /><polyline points="17 8 12 3 7 8" /><line x1="12" y1="3" x2="12" y2="15" /></svg>
-            导入词表
+            {t('dicts.importWordList')}
           </button>
         </div>
       </div>
 
       <div className="rounded-xl border bg-white p-4">
         <div className="flex items-center gap-2">
-          <span className="text-blue-600">当前{active ? '正在学习的词典' : '无正在学习的词典'}</span>
+          <span className="text-blue-600">{active ? t('dicts.currentDict') : t('dicts.noCurrentDict')}</span>
           {active && <span className="font-semibold">{active.name}</span>}
         </div>
         <div className="mt-3 grid grid-cols-4 gap-2 text-center">
-          <div className="rounded bg-gray-50 p-2"><div className="text-xl">0</div><div className="text-xs text-gray-500">新词数</div></div>
-          <div className="rounded bg-gray-50 p-2"><div className="text-xl">0</div><div className="text-xs text-gray-500">复习次数</div></div>
-          <div className="rounded bg-gray-50 p-2"><div className="text-xl">0</div><div className="text-xs text-gray-500">默写次数</div></div>
-          <button className="rounded bg-brand-500 text-white p-2 hover:bg-brand-600 transition-colors" onClick={() => { if (active) navigate('/practice/words') }}>开始学习</button>
+          <div className="rounded bg-gray-50 p-2"><div className="text-xl">0</div><div className="text-xs text-gray-500">{t('dicts.newWords')}</div></div>
+          <div className="rounded bg-gray-50 p-2"><div className="text-xl">0</div><div className="text-xs text-gray-500">{t('dicts.reviewCount')}</div></div>
+          <div className="rounded bg-gray-50 p-2"><div className="text-xl">0</div><div className="text-xs text-gray-500">{t('dicts.dictationCount')}</div></div>
+          <button className="rounded bg-brand-500 text-white p-2 hover:bg-brand-600 transition-colors" onClick={() => { if (active) navigate('/practice/words') }}>{t('dicts.startLearning')}</button>
         </div>
       </div>
 
       <div className="rounded-xl border bg-white p-4">
         <div className="flex items-center justify-between">
-          <h3 className="font-semibold">我的词典</h3>
+          <h3 className="font-semibold">{t('dicts.myDicts')}</h3>
           {isAuthenticated && (
             <div className="flex items-center gap-2">
               <input 
                 className="border rounded px-2 py-1 text-sm" 
-                placeholder="创建个人词典" 
+                placeholder={t('dicts.createDict')} 
                 value={name} 
                 onChange={e => setName(e.target.value)}
                 disabled={creatingDict}
@@ -265,14 +259,14 @@ export default function Dicts() {
                 onClick={onCreate}
                 disabled={creatingDict || !name.trim()}
               >
-                {creatingDict ? '创建中...' : '创建'}
+                {creatingDict ? t('dicts.creating') : t('dicts.create')}
               </button>
             </div>
           )}
         </div>
         {dictsLoading ? (
           <div className="mt-3 flex justify-center py-4">
-            <Loading text="加载词典..." />
+            <Loading text={t('dicts.loadDicts')} />
           </div>
         ) : (
         <div className="mt-3 grid md:grid-cols-4 gap-3">
@@ -285,21 +279,21 @@ export default function Dicts() {
                 {d.id !== 'collected' && d.id !== 'wrong' && d.id !== 'mastered' && <Icon name="dict" className="text-gray-700" />}
                 <span>{d.name}</span>
               </div>
-              <div className="text-xs text-gray-600">{d.wordCount}个词</div>
+              <div className="text-xs text-gray-600">{t('dicts.wordsCount', { count: d.wordCount })}</div>
               <div className="mt-2 flex gap-2">
                 {(['collected', 'wrong', 'mastered'] as const).includes(d.id as 'collected' | 'wrong' | 'mastered') ? (
                   <>
                     <button className="px-2 py-1 border rounded text-xs flex items-center gap-1" onClick={() => quickReview(d.id)}>
-                      <Icon name="review" /> <span>快速回顾</span>
+                      <Icon name="review" /> <span>{t('dicts.quickReview')}</span>
                     </button>
                     <button className="px-2 py-1 border rounded text-xs flex items-center gap-1" onClick={() => setViewId(d.id)}>
-                      <Icon name="eye" /> <span>查看</span>
+                      <Icon name="eye" /> <span>{t('dicts.view')}</span>
                     </button>
                   </>
                 ) : (
                   <>
-                    <button className="px-2 py-1 border rounded text-xs" onClick={() => dispatch(setActive(d.id))}>设为当前学习</button>
-                    <button className="px-2 py-1 border rounded text-xs" onClick={() => { setSelectedDictForImport(d.id); setShowImport(true) }}>导入</button>
+                    <button className="px-2 py-1 border rounded text-xs" onClick={() => dispatch(setActive(d.id))}>{t('dicts.setCurrent')}</button>
+                    <button className="px-2 py-1 border rounded text-xs" onClick={() => { setSelectedDictForImport(d.id); setShowImport(true) }}>{t('dicts.import')}</button>
                   </>
                 )}
               </div>
@@ -312,15 +306,15 @@ export default function Dicts() {
 
       <div className="rounded-xl border bg-white p-4">
         <div className="flex items-center justify-between">
-          <h3 className="font-semibold">推荐</h3>
+          <h3 className="font-semibold">{t('dicts.recommended')}</h3>
         </div>
         <div className="mt-3 grid md:grid-cols-5 gap-3">
           {dicts.recommend.map(d => (
             <div key={d.id} className="rounded border bg-white p-3">
               <div className="font-medium">{d.name}</div>
-              <div className="text-xs text-gray-600">{d.wordCount}个词</div>
+              <div className="text-xs text-gray-600">{t('dicts.wordsCount', { count: d.wordCount })}</div>
               <div className="mt-2">
-                <button className="px-2 py-1 border rounded text-xs" onClick={() => { dispatch(setActive(d.id)); navigate('/practice/words') }}>开始学习</button>
+                <button className="px-2 py-1 border rounded text-xs" onClick={() => { dispatch(setActive(d.id)); navigate('/practice/words') }}>{t('dicts.startLearning')}</button>
               </div>
             </div>
           ))}
@@ -328,19 +322,18 @@ export default function Dicts() {
       </div>
     </div>
 
-      {/* ── 在线查词弹窗 ── */}
       {showLookup && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50" onClick={() => setShowLookup(false)}>
           <div className="bg-white rounded-xl w-full max-w-lg p-5 mx-4 max-h-[85vh] overflow-auto" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold">在线查词</h3>
+              <h3 className="text-lg font-semibold">{t('dicts.lookupTitle')}</h3>
               <button type="button" className="px-2 py-1 border rounded text-xs hover:bg-gray-50 cursor-pointer" onClick={() => { setShowLookup(false); setLookupResult(null); setLookupQuery('') }}>关闭</button>
             </div>
 
             <div className="flex gap-2 mb-4">
               <input
                 className="flex-1 border rounded-lg px-3 py-2 text-sm"
-                placeholder="输入英文单词..."
+                placeholder={t('dicts.enterEnglishWord')}
                 value={lookupQuery}
                 onChange={e => setLookupQuery(e.target.value)}
                 onKeyDown={e => e.key === 'Enter' && handleLookup()}
@@ -351,7 +344,7 @@ export default function Dicts() {
                 onClick={handleLookup}
                 disabled={lookupLoading}
               >
-                {lookupLoading ? '查询中...' : '查询'}
+                {lookupLoading ? t('dicts.searching') : t('dicts.search')}
               </button>
             </div>
 
@@ -362,29 +355,29 @@ export default function Dicts() {
                   {lookupResult.ipa && <div className="text-sm text-gray-500 mt-1">{lookupResult.ipa}</div>}
                   {(lookupResult.phonetic_uk || lookupResult.phonetic_us) && (
                     <div className="text-xs text-gray-400 mt-0.5">
-                      {lookupResult.phonetic_uk && <span>英 {lookupResult.phonetic_uk} </span>}
-                      {lookupResult.phonetic_us && <span>美 {lookupResult.phonetic_us}</span>}
+                      {lookupResult.phonetic_uk && <span>{t('dicts.uk')} {lookupResult.phonetic_uk} </span>}
+                      {lookupResult.phonetic_us && <span>{t('dicts.us')} {lookupResult.phonetic_us}</span>}
                     </div>
                   )}
                 </div>
 
                 {lookupResult.meaning && (
                   <div className="bg-gray-50 rounded-lg p-3">
-                    <div className="text-xs font-medium text-gray-500 mb-1">释义</div>
+                    <div className="text-xs font-medium text-gray-500 mb-1">{t('dicts.definition')}</div>
                     <div className="text-sm whitespace-pre-line">{lookupResult.meaning}</div>
                   </div>
                 )}
 
                 {lookupResult.en_meaning && (
                   <div className="bg-blue-50 rounded-lg p-3">
-                    <div className="text-xs font-medium text-blue-500 mb-1">英英释义</div>
+                    <div className="text-xs font-medium text-blue-500 mb-1">{t('dicts.enDefinition')}</div>
                     <div className="text-sm whitespace-pre-line">{lookupResult.en_meaning}</div>
                   </div>
                 )}
 
                 {lookupResult.synonyms.length > 0 && (
                   <div>
-                    <div className="text-xs font-medium text-gray-500 mb-1">近义词</div>
+                    <div className="text-xs font-medium text-gray-500 mb-1">{t('dicts.synonyms')}</div>
                     <div className="flex flex-wrap gap-1.5">
                       {lookupResult.synonyms.map((s, i) => (
                         <span key={i} className="px-2 py-0.5 bg-gray-100 rounded text-xs">{s}</span>
@@ -395,7 +388,7 @@ export default function Dicts() {
 
                 {lookupResult.examples.length > 0 && (
                   <div>
-                    <div className="text-xs font-medium text-gray-500 mb-1">例句</div>
+                    <div className="text-xs font-medium text-gray-500 mb-1">{t('dicts.examples')}</div>
                     <div className="space-y-1.5">
                       {lookupResult.examples.slice(0, 4).map((ex, i) => (
                         <div key={i} className="text-xs text-gray-700 bg-gray-50 rounded p-2 whitespace-pre-line">{ex}</div>
@@ -406,7 +399,7 @@ export default function Dicts() {
 
                 {lookupResult.phrases.length > 0 && (
                   <div>
-                    <div className="text-xs font-medium text-gray-500 mb-1">短语</div>
+                    <div className="text-xs font-medium text-gray-500 mb-1">{t('dicts.phrases')}</div>
                     <div className="space-y-1">
                       {lookupResult.phrases.slice(0, 5).map((p, i) => (
                         <div key={i} className="text-xs text-gray-700">{p}</div>
@@ -417,7 +410,7 @@ export default function Dicts() {
 
                 {lookupResult.grammar.length > 0 && (
                   <div>
-                    <div className="text-xs font-medium text-gray-500 mb-1">词形变化</div>
+                    <div className="text-xs font-medium text-gray-500 mb-1">{t('dicts.grammar')}</div>
                     <div className="flex flex-wrap gap-2 text-xs text-gray-600">
                       {lookupResult.grammar.map((g, i) => (
                         <span key={i} className="bg-gray-100 rounded px-2 py-0.5">{g}</span>
@@ -432,7 +425,7 @@ export default function Dicts() {
                   onClick={handleSaveLookupWord}
                   disabled={lookupSaving}
                 >
-                  {lookupSaving ? '保存中...' : '添加到我的词库'}
+                  {lookupSaving ? t('dicts.searching') : t('dicts.addToMyDict')}
                 </button>
               </div>
             )}
@@ -440,68 +433,67 @@ export default function Dicts() {
         </div>
       )}
 
-      {/* ── TXT导入弹窗 ── */}
       {showImport && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50" onClick={() => { if (!importing) setShowImport(false) }}>
           <div className="bg-white rounded-xl w-full max-w-md p-5 mx-4" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold">导入词表</h3>
+              <h3 className="text-lg font-semibold">{t('dicts.importTitle')}</h3>
               <button type="button" className="px-2 py-1 border rounded text-xs hover:bg-gray-50 cursor-pointer" onClick={() => setShowImport(false)}>关闭</button>
             </div>
 
             {!isAuthenticated ? (
               <div className="text-center py-8">
-                <div className="text-amber-600 mb-2">⚠ 需要登录</div>
-                <p className="text-sm text-gray-600 mb-4">请先登录后再导入词表</p>
+                <div className="text-amber-600 mb-2">{t('dicts.loginRequired')}</div>
+                <p className="text-sm text-gray-600 mb-4">{t('dicts.loginRequiredMsg')}</p>
                 <button
                   type="button"
                   className="px-4 py-2 bg-brand-500 text-white rounded-lg text-sm hover:bg-brand-600"
                   onClick={() => navigate('/login')}
                 >
-                  去登录
+                  {t('dicts.goLogin')}
                 </button>
               </div>
             ) : (
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">导入到词典</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">{t('dicts.importToDict')}</label>
                   <select
                     className="w-full border rounded-lg px-3 py-2 text-sm"
                     value={selectedDictForImport}
                     onChange={e => setSelectedDictForImport(e.target.value)}
                     disabled={importing}
                   >
-                    <option value="">请选择词典</option>
+                    <option value="">{t('dicts.selectDict')}</option>
                     {dicts.mine
                       .filter(d => !['collected', 'wrong', 'mastered'].includes(d.id))
                       .filter(d => d.source === 'custom')
                       .map(d => (
-                        <option key={d.id} value={d.id}>{d.name} ({d.wordCount}词)</option>
+                        <option key={d.id} value={d.id}>{d.name} ({t('dicts.wordsCount', { count: d.wordCount })})</option>
                       ))}
                   </select>
                   {dicts.mine.filter(d => d.source === 'custom').length === 0 && (
-                    <p className="text-xs text-amber-600 mt-1">您还没有创建词典，请先创建一个词典</p>
+                    <p className="text-xs text-amber-600 mt-1">{t('dicts.noCustomDict')}</p>
                   )}
                 </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">导入模式</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">{t('dicts.importMode')}</label>
                 <div className="flex gap-2">
                   <button
                     type="button"
                     className={`flex-1 px-3 py-2 rounded-lg border-2 text-sm transition-colors ${importMode === 'quick' ? 'border-brand-500 bg-brand-50 text-brand-700' : 'border-gray-200'}`}
                     onClick={() => setImportMode('quick')}
                   >
-                    <div className="font-medium">快速导入</div>
-                    <div className="text-xs mt-0.5 opacity-80">直接导入单词文本（≤200词）</div>
+                    <div className="font-medium">{t('dicts.quickImport')}</div>
+                    <div className="text-xs mt-0.5 opacity-80">{t('dicts.quickImportDesc')}</div>
                   </button>
                   <button
                     type="button"
                     className={`flex-1 px-3 py-2 rounded-lg border-2 text-sm transition-colors ${importMode === 'batch' ? 'border-brand-500 bg-brand-50 text-brand-700' : 'border-gray-200'}`}
                     onClick={() => setImportMode('batch')}
                   >
-                    <div className="font-medium">智能导入</div>
-                    <div className="text-xs mt-0.5 opacity-80">自动从有道词典获取释义</div>
+                    <div className="font-medium">{t('dicts.smartImport')}</div>
+                    <div className="text-xs mt-0.5 opacity-80">{t('dicts.smartImportDesc')}</div>
                   </button>
                 </div>
               </div>
@@ -520,14 +512,14 @@ export default function Dicts() {
                   onClick={() => txtFileRef.current?.click()}
                   disabled={importing || !selectedDictForImport}
                 >
-                  {!selectedDictForImport ? '请先选择词典' : importing ? '导入中...' : '选择 TXT 文件（每行一个单词）'}
+                  {!selectedDictForImport ? t('dicts.selectDictFirst') : importing ? t('dicts.importing') : t('dicts.selectTxtFile')}
                 </button>
               </div>
 
               {importTask && importTask.status === 'running' && (
                 <div className="bg-blue-50 rounded-lg p-3">
                   <div className="flex items-center justify-between text-sm mb-2">
-                    <span className="text-blue-700">正在导入...</span>
+                    <span className="text-blue-700">{t('dicts.importing')}</span>
                     <span className="text-blue-600">{importTask.current}/{importTask.total}</span>
                   </div>
                   <div className="w-full bg-blue-200 rounded-full h-2">
@@ -536,22 +528,22 @@ export default function Dicts() {
                       style={{ width: `${(importTask.current / importTask.total) * 100}%` }}
                     />
                   </div>
-                  <div className="text-xs text-blue-600 mt-1">当前: {importTask.current_word}</div>
+                  <div className="text-xs text-blue-600 mt-1">{t('dicts.currentWord')}: {importTask.current_word}</div>
                 </div>
               )}
 
               {importTask && importTask.status === 'completed' && (
                 <div className="bg-green-50 rounded-lg p-3 text-sm">
-                  <div className="font-medium text-green-700 mb-1">导入完成</div>
+                  <div className="font-medium text-green-700 mb-1">{t('dicts.importComplete')}</div>
                   <div className="text-green-600 text-xs">
-                    成功 {importTask.imported} | 跳过 {importTask.skipped} | 失败 {importTask.failed}
+                    {t('dicts.importSuccess')} {importTask.imported} | {t('dicts.importSkipped')} {importTask.skipped} | {t('dicts.importFailed')} {importTask.failed}
                   </div>
                 </div>
               )}
 
               <div className="text-xs text-gray-400">
-                <p>支持 UTF-8 编码的 TXT 文件，每行一个英文单词。</p>
-                <p className="mt-1">快速导入仅导入单词文本；智能导入自动从有道词典获取音标、释义、例句等完整信息。</p>
+                <p>{t('dicts.txtSupport')}</p>
+                <p className="mt-1">{t('dicts.txtSupportDetail')}</p>
               </div>
             </div>
             )}
@@ -563,7 +555,7 @@ export default function Dicts() {
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50" onClick={() => setViewId(undefined)}>
           <div className="bg-white rounded-xl w-full max-w-xl p-4 mx-4" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-2">
-              <div className="font-semibold">列表</div>
+              <div className="font-semibold">{t('dicts.list')}</div>
               <button type="button" className="px-2 py-1 border rounded text-xs hover:bg-gray-50 transition-colors cursor-pointer" onClick={() => setViewId(undefined)}>关闭</button>
             </div>
             <ul className="max-h-96 overflow-auto space-y-2">
@@ -573,7 +565,7 @@ export default function Dicts() {
                   <div className="text-xs text-gray-600">{w.meaning}</div>
                 </li>
               ))}
-              {itemsByDict(viewId).length === 0 && <div className="text-gray-500 text-sm">暂无词条</div>}
+              {itemsByDict(viewId).length === 0 && <div className="text-gray-500 text-sm">{t('dicts.noEntries')}</div>}
             </ul>
           </div>
         </div>
@@ -583,18 +575,18 @@ export default function Dicts() {
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50" onClick={() => { setReviewIds(undefined); setReviewIndex(0) }}>
           <div className="bg-white rounded-xl w-full max-w-md p-4 mx-4" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-3">
-              <div className="font-semibold">快速回顾 {reviewIndex + 1}/{reviewIds.length}</div>
-              <button type="button" className="px-2 py-1 border rounded text-xs hover:bg-gray-50 transition-colors cursor-pointer" onClick={() => { setReviewIds(undefined); setReviewIndex(0) }}>退出</button>
+              <div className="font-semibold">{t('dicts.quickReviewTitle')} {reviewIndex + 1}/{reviewIds.length}</div>
+              <button type="button" className="px-2 py-1 border rounded text-xs hover:bg-gray-50 transition-colors cursor-pointer" onClick={() => { setReviewIds(undefined); setReviewIndex(0) }}>{t('dicts.exit')}</button>
             </div>
             {(() => {
               const current = words.find(w => w.id === reviewIds[reviewIndex])
-              if (!current) return <div className="text-gray-500">无词条</div>
+              if (!current) return <div className="text-gray-500">{t('dicts.noEntry')}</div>
               return (
                 <div>
                   <div className="text-xl font-semibold">{current.term}</div>
                   <div className="text-gray-600">{current.meaning}</div>
                   <div className="mt-4 flex gap-2">
-                    <button type="button" className="px-3 py-2 bg-gray-900 text-white rounded hover:bg-gray-800 transition-colors" onClick={() => setReviewIndex(i => Math.min(i + 1, reviewIds.length - 1))}>{"下一条"}</button>
+                    <button type="button" className="px-3 py-2 bg-gray-900 text-white rounded hover:bg-gray-800 transition-colors" onClick={() => setReviewIndex(i => Math.min(i + 1, reviewIds.length - 1))}>{t('dicts.nextEntry')}</button>
                   </div>
                 </div>
               )

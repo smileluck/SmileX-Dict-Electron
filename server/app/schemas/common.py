@@ -10,8 +10,8 @@ from app.schemas.word import WordItem
 
 
 class ExportData(BaseModel):
-    dicts: List[DictItem]
-    words: List[WordItem]
-    articles: List[ArticleItem]
-    stats: List[StatItem]
+    dicts: List[DictItem] = []
+    words: List[WordItem] = []
+    articles: List[ArticleItem] = []
+    stats: List[StatItem] = []
     settings: Optional[UserSettings] = None

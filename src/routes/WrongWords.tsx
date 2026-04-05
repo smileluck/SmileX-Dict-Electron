@@ -1,11 +1,13 @@
+import { useTranslation } from 'react-i18next'
 import WordList from '../components/WordList'
 
 export default function WrongWords() {
+  const { t } = useTranslation()
   return (
     <WordList
       status="wrong"
-      title="错词本"
-      emptyText="暂无错词，继续加油！"
+      title={t('wrongWords.title')}
+      emptyText={t('wrongWords.empty')}
       icon="wrong"
       iconClass="text-red-500"
     />
