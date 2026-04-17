@@ -203,23 +203,23 @@ export default function Settings() {
   if (!settings && loading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <div className="text-gray-400">{t('common.loading')}</div>
+        <div className="text-gray-400 dark:text-gray-500">{t('common.loading')}</div>
       </div>
     )
   }
 
   return (
-    <div className="max-w-2xl mx-auto space-y-6">
-      <h2 className="text-2xl font-semibold">{t('settings.title')}</h2>
+    <div className="max-w-2xl mx-auto space-y-6 page-enter">
+      <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">{t('settings.title')}</h2>
 
-      <div className="rounded-xl border bg-white p-6">
-        <h3 className="text-lg font-medium mb-4">{t('settings.userInfo')}</h3>
+      <div className="glass-card p-6">
+        <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-4">{t('settings.userInfo')}</h3>
         <div className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">{t('settings.username')}</label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('settings.username')}</label>
             <input
               type="text"
-              className="w-full border rounded px-3 py-2"
+              className="input-glass"
               value={username}
               onChange={e => setUsername(e.target.value)}
               placeholder={t('settings.usernamePlaceholder')}
@@ -228,33 +228,33 @@ export default function Settings() {
         </div>
       </div>
 
-      <div className="rounded-xl border bg-white p-6">
-        <h3 className="text-lg font-medium mb-4">{t('settings.learningSettings')}</h3>
+      <div className="glass-card p-6">
+        <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-4">{t('settings.learningSettings')}</h3>
         <div className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
               {t('settings.dailyNewWordTarget')}
             </label>
             <input
               type="number"
               min="1"
               max="100"
-              className="w-full border rounded px-3 py-2"
+              className="input-glass"
               value={dailyNewWordTarget}
               onChange={e => setDailyNewWordTarget(parseInt(e.target.value) || 20)}
             />
-            <p className="text-xs text-gray-500 mt-1">
+            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
               {t('settings.dailyNewWordTargetHint')}
             </p>
           </div>
         </div>
       </div>
 
-      <div className="rounded-xl border bg-white p-6">
-        <h3 className="text-lg font-medium mb-4">{t('settings.appearance')}</h3>
+      <div className="glass-card p-6">
+        <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-4">{t('settings.appearance')}</h3>
         <div className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">{t('settings.themeMode')}</label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t('settings.themeMode')}</label>
             <div className="flex gap-3">
               {([
                 { value: 'light', label: t('settings.themeLight') },
@@ -263,10 +263,10 @@ export default function Settings() {
               ] as const).map(opt => (
                 <button
                   key={opt.value}
-                  className={`px-4 py-2 rounded-lg border-2 transition-colors ${
+                  className={`rounded-xl border-2 p-4 cursor-pointer transition-all duration-200 ${
                     theme === opt.value
-                      ? 'border-brand-500 bg-brand-50 text-brand-700'
-                      : 'border-gray-200 hover:border-gray-300'
+                      ? 'border-brand-500 dark:border-brand-400 bg-brand-50 dark:bg-brand-900/20'
+                      : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
                   }`}
                   onClick={() => setTheme(opt.value)}
                 >
@@ -276,8 +276,8 @@ export default function Settings() {
             </div>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">{t('settings.language')}</label>
-            <p className="text-xs text-gray-500 mb-2">{t('settings.languageDesc')}</p>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t('settings.language')}</label>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mb-2">{t('settings.languageDesc')}</p>
             <div className="flex gap-3">
               {([
                 { value: 'zh', label: '中文' },
@@ -285,10 +285,10 @@ export default function Settings() {
               ] as const).map(opt => (
                 <button
                   key={opt.value}
-                  className={`px-4 py-2 rounded-lg border-2 transition-colors ${
+                  className={`rounded-xl border-2 p-4 cursor-pointer transition-all duration-200 ${
                     i18n.language === opt.value || (i18n.language?.startsWith('zh') && opt.value === 'zh')
-                      ? 'border-brand-500 bg-brand-50 text-brand-700'
-                      : 'border-gray-200 hover:border-gray-300'
+                      ? 'border-brand-500 dark:border-brand-400 bg-brand-50 dark:bg-brand-900/20'
+                      : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
                   }`}
                   onClick={() => i18n.changeLanguage(opt.value)}
                 >
@@ -300,23 +300,23 @@ export default function Settings() {
         </div>
       </div>
 
-      <div className="rounded-xl border bg-white p-6">
-        <h3 className="text-lg font-medium mb-4">{t('settings.dataManagement')}</h3>
+      <div className="glass-card p-6">
+        <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-4">{t('settings.dataManagement')}</h3>
         <div className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">{t('settings.exportData')}</label>
-            <p className="text-xs text-gray-500 mb-2">{t('settings.exportDesc')}</p>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t('settings.exportData')}</label>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mb-2">{t('settings.exportDesc')}</p>
             <button
-              className="px-4 py-2 border rounded-lg hover:bg-gray-50 transition-colors text-sm"
+              className="btn-secondary w-full py-2.5 text-sm"
               onClick={handleExport}
               disabled={exporting}
             >
               {exporting ? t('settings.exporting') : t('settings.exportButton')}
             </button>
           </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">{t('settings.importData')}</label>
-            <p className="text-xs text-gray-500 mb-2">{t('settings.importDesc')}</p>
+          <div className="border-t border-gray-200/60 dark:border-gray-700/50 pt-4">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t('settings.importData')}</label>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mb-2">{t('settings.importDesc')}</p>
             <input
               type="file"
               accept=".json"
@@ -325,16 +325,16 @@ export default function Settings() {
               className="hidden"
             />
             <button
-              className="px-4 py-2 border rounded-lg hover:bg-gray-50 transition-colors text-sm"
+              className="btn-secondary w-full py-2.5 text-sm"
               onClick={() => importFileRef.current?.click()}
               disabled={importing}
             >
               {importing ? t('settings.importing') : t('settings.importButton')}
             </button>
           </div>
-          <div className="border-t pt-4">
-            <label className="block text-sm font-medium text-gray-700 mb-2">{t('settings.csvImport')}</label>
-            <p className="text-xs text-gray-500 mb-2">{t('settings.csvImportDesc')}</p>
+          <div className="border-t border-gray-200/60 dark:border-gray-700/50 pt-4">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t('settings.csvImport')}</label>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mb-2">{t('settings.csvImportDesc')}</p>
             <input
               type="file"
               accept=".csv"
@@ -343,26 +343,26 @@ export default function Settings() {
               className="hidden"
             />
             <button
-              className="px-4 py-2 border rounded-lg hover:bg-gray-50 transition-colors text-sm"
+              className="btn-secondary w-full py-2.5 text-sm"
               onClick={() => csvFileRef.current?.click()}
               disabled={csvImporting}
             >
               {csvImporting ? t('settings.importing') : t('settings.csvImportButton')}
             </button>
           </div>
-          <div className="border-t pt-4">
-            <label className="block text-sm font-medium text-gray-700 mb-2">{t('settings.txtImport')}</label>
-            <p className="text-xs text-gray-500 mb-2">{t('settings.txtImportDesc')}</p>
-            
+          <div className="border-t border-gray-200/60 dark:border-gray-700/50 pt-4">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t('settings.txtImport')}</label>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mb-2">{t('settings.txtImportDesc')}</p>
+
             {!isAuthenticated ? (
-              <div className="text-xs text-amber-600 mb-2">
+              <div className="text-xs text-amber-600 dark:text-amber-400 mb-2">
                 ⚠ {t('settings.loginRequiredForImport')}
               </div>
             ) : (
               <div className="mb-2">
-                <label className="block text-xs font-medium text-gray-600 mb-1">{t('settings.importToDict')}</label>
+                <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">{t('settings.importToDict')}</label>
                 <select
-                  className="w-full border rounded px-3 py-1.5 text-sm"
+                  className="input-glass"
                   value={targetDictId}
                   onChange={e => setTargetDictId(e.target.value)}
                   disabled={txtImporting}
@@ -376,11 +376,11 @@ export default function Settings() {
                     ))}
                 </select>
                 {dicts.filter(d => d.source === 'custom').length === 0 && (
-                  <p className="text-xs text-amber-600 mt-1">{t('settings.noCustomDict')}</p>
+                  <p className="text-xs text-amber-600 dark:text-amber-400 mt-1">{t('settings.noCustomDict')}</p>
                 )}
               </div>
             )}
-            
+
             <input
               type="file"
               accept=".txt"
@@ -389,7 +389,7 @@ export default function Settings() {
               className="hidden"
             />
             <button
-              className="px-4 py-2 border rounded-lg hover:bg-gray-50 transition-colors text-sm disabled:opacity-50"
+              className="btn-secondary w-full py-2.5 text-sm disabled:opacity-50"
               onClick={() => txtFileRef.current?.click()}
               disabled={txtImporting || !isAuthenticated || !targetDictId}
             >
@@ -401,7 +401,7 @@ export default function Settings() {
 
       <div className="flex justify-end">
         <button
-          className={`px-6 py-2 rounded-lg bg-brand-500 text-white hover:bg-brand-600 transition-colors ${
+          className={`btn-primary px-6 py-2.5 ${
             saving ? 'opacity-50 cursor-not-allowed' : ''
           }`}
           onClick={handleSave}

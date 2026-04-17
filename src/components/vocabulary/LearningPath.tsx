@@ -86,7 +86,6 @@ export default function LearningPath() {
     const recs: Recommendation[] = []
     const today = new Date().toISOString().split('T')[0]
 
-    // Review words recommendation
     const reviewWords = words.filter(
       w => w.status !== 'mastered' && w.nextReviewDate.split('T')[0] <= today
     )
@@ -100,7 +99,6 @@ export default function LearningPath() {
       })
     }
 
-    // Wrong words focus
     const wrongWords = words.filter(w => w.status === 'wrong')
     if (wrongWords.length > 0) {
       recs.push({
@@ -112,7 +110,6 @@ export default function LearningPath() {
       })
     }
 
-    // New words recommendation
     const newWords = words.filter(w => w.status === 'new').slice(0, 15)
     if (newWords.length > 0) {
       recs.push({
@@ -137,11 +134,10 @@ export default function LearningPath() {
   }, [words])
 
   return (
-    <div className="space-y-4">
-      {/* Learning path selector */}
-      <div className="rounded-xl border bg-white p-4">
-        <h3 className="font-semibold text-lg flex items-center gap-2 mb-3">
-          <Icon name="map" size={20} className="text-brand-600" />
+    <div className="space-y-4 page-enter">
+      <div className="glass-card p-4">
+        <h3 className="font-semibold text-lg text-gray-900 dark:text-gray-100 flex items-center gap-2 mb-3">
+          <Icon name="map" size={20} className="text-brand-600 dark:text-brand-400" />
           个性化学习路径
         </h3>
         <div className="flex gap-2 overflow-x-auto pb-1">
@@ -152,7 +148,7 @@ export default function LearningPath() {
               className={`px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors ${
                 selectedPath === path.id
                   ? 'bg-brand-500 text-white'
-                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600'
               }`}
             >
               {path.title}
@@ -160,42 +156,40 @@ export default function LearningPath() {
           ))}
         </div>
         {currentPath && (
-          <p className="text-sm text-gray-600 mt-2">{currentPath.description}</p>
+          <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">{currentPath.description}</p>
         )}
       </div>
 
-      {/* Progress overview */}
-      <div className="rounded-xl border bg-white p-4">
-        <h4 className="font-medium text-gray-700 mb-3">学习进度概览</h4>
+      <div className="glass-card p-4">
+        <h4 className="font-medium text-gray-700 dark:text-gray-300 mb-3">学习进度概览</h4>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          <div className="rounded-lg bg-gray-50 p-3 text-center">
-            <div className="text-2xl font-bold text-gray-700">{stats.total}</div>
-            <div className="text-xs text-gray-500">总词汇</div>
+          <div className="rounded-lg bg-gray-50 dark:bg-gray-700/30 p-3 text-center">
+            <div className="text-2xl font-bold text-gray-700 dark:text-gray-200">{stats.total}</div>
+            <div className="text-xs text-gray-500 dark:text-gray-400">总词汇</div>
           </div>
-          <div className="rounded-lg bg-green-50 p-3 text-center">
-            <div className="text-2xl font-bold text-green-600">{stats.mastered}</div>
-            <div className="text-xs text-gray-500">已掌握</div>
+          <div className="rounded-lg bg-green-50 dark:bg-green-900/20 p-3 text-center">
+            <div className="text-2xl font-bold text-green-600 dark:text-green-400">{stats.mastered}</div>
+            <div className="text-xs text-gray-500 dark:text-gray-400">已掌握</div>
           </div>
-          <div className="rounded-lg bg-blue-50 p-3 text-center">
-            <div className="text-2xl font-bold text-blue-600">{stats.newWords}</div>
-            <div className="text-xs text-gray-500">新词</div>
+          <div className="rounded-lg bg-blue-50 dark:bg-blue-900/20 p-3 text-center">
+            <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">{stats.newWords}</div>
+            <div className="text-xs text-gray-500 dark:text-gray-400">新词</div>
           </div>
-          <div className="rounded-lg bg-red-50 p-3 text-center">
-            <div className="text-2xl font-bold text-red-600">{stats.wrong}</div>
-            <div className="text-xs text-gray-500">错词</div>
+          <div className="rounded-lg bg-red-50 dark:bg-red-900/20 p-3 text-center">
+            <div className="text-2xl font-bold text-red-600 dark:text-red-400">{stats.wrong}</div>
+            <div className="text-xs text-gray-500 dark:text-gray-400">错词</div>
           </div>
         </div>
 
-        {/* Difficulty distribution */}
         <div className="mt-4">
-          <h5 className="text-sm font-medium text-gray-700 mb-2">词汇难度分布</h5>
+          <h5 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">词汇难度分布</h5>
           <div className="space-y-2">
             {[1, 2, 3, 4, 5].map(level => (
               <div key={level} className="flex items-center gap-2">
-                <span className="text-xs text-gray-500 w-16">
+                <span className="text-xs text-gray-500 dark:text-gray-400 w-16">
                   {level === 1 ? '基础' : level === 2 ? '入门' : level === 3 ? '中等' : level === 4 ? '困难' : '高级'}
                 </span>
-                <div className="flex-1 bg-gray-100 rounded-full h-3 relative overflow-hidden">
+                <div className="flex-1 bg-gray-100 dark:bg-gray-700 rounded-full h-3 relative overflow-hidden">
                   <div
                     className={`h-3 rounded-full transition-all ${
                       level >= 4 ? 'bg-red-400' : level >= 3 ? 'bg-yellow-400' : 'bg-green-400'
@@ -205,7 +199,7 @@ export default function LearningPath() {
                     }}
                   />
                 </div>
-                <span className="text-xs text-gray-500 w-8 text-right">
+                <span className="text-xs text-gray-500 dark:text-gray-400 w-8 text-right">
                   {difficultyDistribution[level as keyof typeof difficultyDistribution]}
                 </span>
               </div>
@@ -214,20 +208,19 @@ export default function LearningPath() {
         </div>
       </div>
 
-      {/* Milestones */}
       {currentPath && (
-        <div className="rounded-xl border bg-white p-4">
-          <h4 className="font-medium text-gray-700 mb-3">学习里程碑</h4>
+        <div className="glass-card p-4">
+          <h4 className="font-medium text-gray-700 dark:text-gray-300 mb-3">学习里程碑</h4>
           <div className="space-y-3">
             {currentPath.milestones.map((milestone, idx) => (
               <div
                 key={milestone.id}
                 className={`flex items-start gap-3 p-3 rounded-lg border ${
                   milestone.completed
-                    ? 'bg-green-50 border-green-200'
+                    ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800/50'
                     : idx === currentPath.milestones.findIndex(m => !m.completed)
-                    ? 'bg-brand-50 border-brand-200'
-                    : 'bg-gray-50 border-gray-200'
+                    ? 'bg-brand-50 dark:bg-brand-900/20 border-brand-200 dark:border-brand-800/50'
+                    : 'bg-gray-50 dark:bg-gray-700/30 border-gray-200 dark:border-gray-700/50'
                 }`}
               >
                 <div
@@ -236,14 +229,14 @@ export default function LearningPath() {
                       ? 'bg-green-500 text-white'
                       : idx === currentPath.milestones.findIndex(m => !m.completed)
                       ? 'bg-brand-500 text-white'
-                      : 'bg-gray-300 text-white'
+                      : 'bg-gray-300 dark:bg-gray-600 text-white'
                   }`}
                 >
                   {milestone.completed ? '✓' : idx + 1}
                 </div>
                 <div className="flex-1">
-                  <h5 className="font-medium text-gray-900">{milestone.title}</h5>
-                  <p className="text-sm text-gray-500">
+                  <h5 className="font-medium text-gray-900 dark:text-gray-100">{milestone.title}</h5>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">
                     目标: {milestone.targetWords} 词
                   </p>
                 </div>
@@ -253,16 +246,15 @@ export default function LearningPath() {
         </div>
       )}
 
-      {/* Recommendations */}
-      <div className="rounded-xl border bg-white p-4">
+      <div className="glass-card p-4">
         <div className="flex items-center justify-between mb-3">
-          <h4 className="font-medium text-gray-700 flex items-center gap-2">
-            <Icon name="lightbulb" size={16} className="text-yellow-500" />
+          <h4 className="font-medium text-gray-700 dark:text-gray-300 flex items-center gap-2">
+            <Icon name="lightbulb" size={16} className="text-yellow-500 dark:text-yellow-400" />
             今日推荐
           </h4>
           <button
             onClick={() => setShowRecommendations(!showRecommendations)}
-            className="text-xs text-brand-600 hover:text-brand-700"
+            className="text-xs text-brand-600 dark:text-brand-400 hover:text-brand-700 dark:hover:text-brand-300"
           >
             {showRecommendations ? '收起' : '展开'}
           </button>
@@ -270,25 +262,25 @@ export default function LearningPath() {
         {showRecommendations && (
           <div className="space-y-3">
             {recommendations.map((rec, idx) => (
-              <div key={idx} className="rounded-lg border p-3 bg-gray-50">
+              <div key={idx} className="rounded-lg border border-gray-200 dark:border-gray-700/50 p-3 bg-gray-50 dark:bg-gray-700/30">
                 <div className="flex items-center justify-between mb-2">
-                  <span className="font-medium text-gray-900 text-sm">
+                  <span className="font-medium text-gray-900 dark:text-gray-100 text-sm">
                     {rec.type === 'review_words' && '复习任务'}
                     {rec.type === 'focus_areas' && '重点复习'}
                     {rec.type === 'new_words' && '新词学习'}
                   </span>
-                  <span className="text-xs text-gray-500">约 {rec.estimatedTime} 分钟</span>
+                  <span className="text-xs text-gray-500 dark:text-gray-400">约 {rec.estimatedTime} 分钟</span>
                 </div>
-                <p className="text-sm text-gray-600 mb-2">{rec.reason}</p>
+                <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">{rec.reason}</p>
                 {rec.words.length > 0 && (
                   <div className="flex flex-wrap gap-1">
                     {rec.words.slice(0, 8).map(w => (
-                      <span key={w.id} className="text-xs bg-white border px-2 py-0.5 rounded">
+                      <span key={w.id} className="text-xs bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 px-2 py-0.5 rounded text-gray-700 dark:text-gray-300">
                         {w.term}
                       </span>
                     ))}
                     {rec.words.length > 8 && (
-                      <span className="text-xs text-gray-400">+{rec.words.length - 8} 更多</span>
+                      <span className="text-xs text-gray-400 dark:text-gray-500">+{rec.words.length - 8} 更多</span>
                     )}
                   </div>
                 )}

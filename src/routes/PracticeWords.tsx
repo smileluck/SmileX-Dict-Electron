@@ -219,11 +219,11 @@ export default function PracticeWords() {
 
   if (queue.length === 0) {
     return (
-      <div className="space-y-4">
-        <div className="rounded-xl border bg-white p-4">
-          <label className="block text-sm font-medium text-gray-700 mb-2">{t('practice.selectDict')}</label>
+      <div className="space-y-4 page-enter">
+        <div className="glass-card p-4">
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t('practice.selectDict')}</label>
           <select
-            className="w-full border rounded px-3 py-2 text-sm"
+            className="w-full input-glass"
             value={selectedDictId || ''}
             onChange={e => handleDictChange(e.target.value)}
           >
@@ -234,21 +234,21 @@ export default function PracticeWords() {
           </select>
         </div>
 
-        <div className="rounded-xl border bg-white p-8 text-center">
-          <div className="text-gray-400 text-4xl mb-3">📚</div>
-          <div className="text-gray-500 mb-2">{t('practice.noWordsTitle')}</div>
-          <div className="text-sm text-gray-400">{t('practice.noWordsHint')}</div>
+        <div className="glass-card p-8 text-center">
+          <div className="text-gray-400 dark:text-gray-500 text-4xl mb-3">📚</div>
+          <div className="text-gray-500 dark:text-gray-400 mb-2">{t('practice.noWordsTitle')}</div>
+          <div className="text-sm text-gray-400 dark:text-gray-500">{t('practice.noWordsHint')}</div>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 page-enter">
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <div className="flex-1 min-w-[200px]">
           <select
-            className="w-full border rounded px-3 py-1.5 text-sm"
+            className="w-full input-glass"
             value={selectedDictId || ''}
             onChange={e => handleDictChange(e.target.value)}
           >
@@ -262,23 +262,23 @@ export default function PracticeWords() {
           {modeButtons.map(m => (
             <button
               key={m.key}
-              className={`px-3 py-1 rounded border transition-colors text-sm ${mode === m.key ? 'bg-brand-100 border-brand-400 font-medium' : 'hover:bg-gray-50'}`}
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 border ${mode === m.key ? 'bg-brand-500/10 dark:bg-brand-400/15 border-brand-400 dark:border-brand-500 text-brand-700 dark:text-brand-400' : 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700/50'}`}
               onClick={() => handleModeChange(m.key)}
             >
               {m.label}
             </button>
           ))}
         </div>
-        <span className="text-sm text-gray-500">{index + 1} / {queue.length}</span>
+        <span className="text-sm text-gray-600 dark:text-gray-400">{index + 1} / {queue.length}</span>
       </div>
 
       {current && (
         <div className="space-y-2">
           {fatigueWarning && fatigueWarning.isFatigued && (
-            <div className={`rounded-lg p-3 text-sm ${
-              fatigueWarning.level === 'high' ? 'bg-red-50 text-red-700 border border-red-200' :
-              fatigueWarning.level === 'medium' ? 'bg-orange-50 text-orange-700 border border-orange-200' :
-              'bg-yellow-50 text-yellow-700 border border-yellow-200'
+            <div className={`rounded-xl p-3 border text-sm ${
+              fatigueWarning.level === 'high' ? 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800 text-red-700 dark:text-red-400' :
+              fatigueWarning.level === 'medium' ? 'bg-orange-50 dark:bg-orange-900/20 border-orange-200 dark:border-orange-800 text-orange-700 dark:text-orange-400' :
+              'bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-800 text-yellow-700 dark:text-yellow-400'
             }`}>
               <div className="flex items-center gap-2">
                 <span>⚠️</span>
@@ -287,7 +287,7 @@ export default function PracticeWords() {
             </div>
           )}
           {learningSuggestion && (
-            <div className="rounded-lg bg-blue-50 border border-blue-200 p-3 text-sm text-blue-700">
+            <div className="rounded-xl bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 p-3 text-sm text-blue-700 dark:text-blue-400">
               <div className="flex items-center gap-2">
                 <span>💡</span>
                 <span>{learningSuggestion}</span>
@@ -297,65 +297,65 @@ export default function PracticeWords() {
         </div>
       )}
 
-      <div className="rounded-xl border bg-white p-4">
+      <div className="glass-card p-6">
         <div className="flex items-start justify-between">
           <div className="flex-1">
             <>
-              <div className="text-2xl font-semibold flex items-center gap-2">
+              <div className="text-2xl font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2">
                 <Icon name="dict" /> <span>{current?.term}</span>
                 <SpeakButton text={current?.term || ''} />
               </div>
-              <div className="text-gray-600">{current?.ipa}</div>
-              <div className="mt-2">{current?.meaning}</div>
-              {current?.example && <div className="mt-2 text-sm text-gray-700">{t('practice.example')}{current.example}</div>}
-              {current?.synonyms && current.synonyms.length > 0 && <div className="mt-1 text-sm text-gray-700">{t('practice.synonyms')}{current.synonyms.join(', ')}</div>}
-              {current?.synonymsNote && <div className="mt-1 text-xs text-gray-500">{t('practice.difference')}{current.synonymsNote}</div>}
+              <div className="text-gray-600 dark:text-gray-400">{current?.ipa}</div>
+              <div className="mt-2 text-gray-900 dark:text-gray-100">{current?.meaning}</div>
+              {current?.example && <div className="mt-2 text-sm text-gray-700 dark:text-gray-300">{t('practice.example')}{current.example}</div>}
+              {current?.synonyms && current.synonyms.length > 0 && <div className="mt-1 text-sm text-gray-700 dark:text-gray-300">{t('practice.synonyms')}{current.synonyms.join(', ')}</div>}
+              {current?.synonymsNote && <div className="mt-1 text-xs text-gray-500 dark:text-gray-400">{t('practice.difference')}{current.synonymsNote}</div>}
             </>
           </div>
 
           <div className="flex gap-1 ml-3">
             <button
-              className={`p-2 rounded border transition-colors ${isCollected ? 'bg-amber-100 border-amber-400 text-amber-600' : 'hover:bg-gray-50 text-gray-400'}`}
+              className={`p-2 rounded-lg border transition-all duration-200 ${isCollected ? 'bg-amber-100 dark:bg-amber-900/30 border-amber-400 dark:border-amber-600 text-amber-600 dark:text-amber-400' : 'hover:bg-gray-50 dark:hover:bg-gray-700/50 text-gray-400 dark:text-gray-500 border-gray-200 dark:border-gray-700'}`}
               onClick={handleToggleCollect}
               title={isCollected ? t('practice.uncollect') : t('practice.collect')}
             >
-              <Icon name="star" size={16} className={isCollected ? 'text-amber-500' : 'text-gray-400'} />
+              <Icon name="star" size={16} className={isCollected ? 'text-amber-500 dark:text-amber-400' : 'text-gray-400 dark:text-gray-500'} />
             </button>
             <button
-              className={`p-2 rounded border transition-colors ${isWrong ? 'bg-red-100 border-red-400 text-red-600' : 'hover:bg-gray-50 text-gray-400'}`}
+              className={`p-2 rounded-lg border transition-all duration-200 ${isWrong ? 'bg-red-100 dark:bg-red-900/30 border-red-400 dark:border-red-600 text-red-600 dark:text-red-400' : 'hover:bg-gray-50 dark:hover:bg-gray-700/50 text-gray-400 dark:text-gray-500 border-gray-200 dark:border-gray-700'}`}
               onClick={handleMarkWrong}
               title={t('practice.addToWrongBook')}
             >
-              <Icon name="wrong" size={16} className={isWrong ? 'text-red-500' : 'text-gray-400'} />
+              <Icon name="wrong" size={16} className={isWrong ? 'text-red-500 dark:text-red-400' : 'text-gray-400 dark:text-gray-500'} />
             </button>
           </div>
         </div>
 
         {mode === 'type' ? (
           <div className="mt-4">
-            <input className="w-full border rounded px-3 py-2" placeholder={t('practice.inputPlaceholder')} value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && !result && submitType()} />
+            <input className="w-full input-glass" placeholder={t('practice.inputPlaceholder')} value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && !result && submitType()} />
             <div className="mt-3 flex gap-2">
-              <button className="px-3 py-2 bg-gray-900 text-white rounded hover:bg-gray-800 transition-colors" onClick={submitType} disabled={!!result}>{t('practice.confirm')}</button>
-              <button className="px-3 py-2 border rounded hover:bg-gray-50 transition-colors" onClick={handleNextFromResult}>{t('practice.skip')}</button>
+              <button className="btn-primary" onClick={submitType} disabled={!!result}>{t('practice.confirm')}</button>
+              <button className="btn-secondary" onClick={handleNextFromResult}>{t('practice.skip')}</button>
             </div>
             {result && (
-              <div className={`mt-3 text-sm font-medium ${result === 'correct' ? 'text-green-600' : 'text-red-600'}`}>
+              <div className={`mt-3 text-sm font-medium ${result === 'correct' ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded-lg px-3 py-2' : 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 rounded-lg px-3 py-2'}`}>
                 {result === 'correct' ? t('practice.correct') : t('practice.wrong', { term: current?.term })}
               </div>
             )}
           </div>
         ) : (
           <div className="mt-4 flex gap-2">
-            <button className="px-3 py-2 bg-green-600 text-white rounded hover:bg-green-700 transition-colors" onClick={() => submitConfirm(true)}>{t('practice.mastered')}</button>
-            <button className="px-3 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition-colors" onClick={() => submitConfirm(false)}>{t('practice.notMastered')}</button>
-            <button className="px-3 py-2 border rounded hover:bg-gray-50 transition-colors" onClick={next}>{t('practice.next')}</button>
+            <button className="px-3 py-2 bg-green-600 dark:bg-green-500 text-white rounded-lg hover:bg-green-700 dark:hover:bg-green-600 transition-all duration-200" onClick={() => submitConfirm(true)}>{t('practice.mastered')}</button>
+            <button className="px-3 py-2 bg-red-600 dark:bg-red-500 text-white rounded-lg hover:bg-red-700 dark:hover:bg-red-600 transition-all duration-200" onClick={() => submitConfirm(false)}>{t('practice.notMastered')}</button>
+            <button className="btn-secondary" onClick={next}>{t('practice.next')}</button>
           </div>
         )}
 
-        <div className="mt-3 flex gap-3 text-xs text-gray-400">
-          <span>{t('practice.shortcuts')}</span>
-          {mode === 'type' && <span>{t('practice.shortcutType')}</span>}
-          {mode === 'confirm' && <span>{t('practice.shortcutConfirm')}</span>}
+        <div className="mt-3 flex gap-3 text-xs text-gray-400 dark:text-gray-500">
+          <span className="text-xs px-2 py-1 rounded bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400">{t('practice.shortcuts')}</span>
+          {mode === 'type' && <span className="text-xs px-2 py-1 rounded bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400">{t('practice.shortcutType')}</span>}
+          {mode === 'confirm' && <span className="text-xs px-2 py-1 rounded bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400">{t('practice.shortcutConfirm')}</span>}
         </div>
       </div>
     </div>

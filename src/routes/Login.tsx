@@ -111,30 +111,32 @@ export default function Login() {
 
   return (
     <div className="max-w-md mx-auto page-enter">
-      <div className="rounded-xl border bg-white p-6">
+      <div className="glass-card p-6">
         <div className="flex items-center gap-2 mb-6">
-          <img src="/smilex.svg" alt="SmileX" className="w-8 h-8" />
-          <h2 className="text-xl font-semibold">
+          <div className="w-10 h-10 rounded-xl bg-gradient-brand flex items-center justify-center shadow-glow">
+            <img src="/smilex.svg" alt="SmileX" className="w-6 h-6" />
+          </div>
+          <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
             {tab === 'login' ? t('login.login') : t('login.register')} SmileX Dict
           </h2>
         </div>
 
-        <div className="flex border-b mb-6">
+        <div className={`flex border-b mb-6 border-gray-200 dark:border-gray-700`}>
           <button
-            className={`flex-1 py-2 text-sm font-medium border-b-2 transition-colors ${
+            className={`flex-1 py-2.5 text-sm font-medium border-b-2 transition-colors ${
               tab === 'login'
-                ? 'border-brand-500 text-brand-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700'
+                ? 'border-brand-500 dark:border-brand-400 text-brand-600 dark:text-brand-400'
+                : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
             }`}
             onClick={() => setTab('login')}
           >
             {t('login.login')}
           </button>
           <button
-            className={`flex-1 py-2 text-sm font-medium border-b-2 transition-colors ${
+            className={`flex-1 py-2.5 text-sm font-medium border-b-2 transition-colors ${
               tab === 'register'
-                ? 'border-brand-500 text-brand-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700'
+                ? 'border-brand-500 dark:border-brand-400 text-brand-600 dark:text-brand-400'
+                : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
             }`}
             onClick={() => setTab('register')}
           >
@@ -144,7 +146,7 @@ export default function Login() {
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
               {t('login.username')}
             </label>
             <input
@@ -152,7 +154,7 @@ export default function Login() {
               value={username}
               onChange={e => setUsername(e.target.value)}
               placeholder={t('login.usernamePlaceholder')}
-              className="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
+              className="input-glass"
               autoComplete="username"
               required
               minLength={3}
@@ -161,7 +163,7 @@ export default function Login() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
               {t('login.password')}
             </label>
             <input
@@ -169,7 +171,7 @@ export default function Login() {
               value={password}
               onChange={e => setPassword(e.target.value)}
               placeholder={t('login.passwordPlaceholder')}
-              className="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
+              className="input-glass"
               autoComplete={tab === 'login' ? 'current-password' : 'new-password'}
               required
               minLength={8}
@@ -177,7 +179,7 @@ export default function Login() {
             />
 
             {tab === 'login' && (
-              <p className="mt-1 text-xs text-gray-500">
+              <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
                 {t('login.passwordRequirements')}
               </p>
             )}
@@ -185,13 +187,13 @@ export default function Login() {
             {tab === 'register' && password.length > 0 && (
               <div className="mt-2 space-y-2">
                 <div className="flex items-center gap-2">
-                  <div className="flex-1 bg-gray-200 rounded-full h-2">
+                  <div className="flex-1 bg-gray-200 dark:bg-gray-700 rounded-full h-2">
                     <div
                       className={`h-2 rounded-full transition-all duration-300 ${passwordStrength.color}`}
                       style={{ width: `${passwordStrength.score}%` }}
                     />
                   </div>
-                  <span className="text-xs font-medium text-gray-600 w-12">
+                  <span className="text-xs font-medium text-gray-600 dark:text-gray-300 w-12">
                     {passwordStrength.label || t('login.passwordStrength')}
                   </span>
                 </div>
@@ -202,11 +204,11 @@ export default function Login() {
                       key={req.id}
                       className={`flex items-center gap-1.5 px-2 py-1.5 rounded transition-colors ${
                         req.check
-                          ? 'bg-green-50 text-green-700 border border-green-200'
-                          : 'bg-gray-50 text-gray-500 border border-gray-200'
+                          ? 'bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 border border-green-200 dark:border-green-800'
+                          : 'bg-gray-50 dark:bg-gray-700/50 text-gray-500 dark:text-gray-400 border border-gray-200 dark:border-gray-600'
                       }`}
                     >
-                      <span className={req.check ? 'text-green-600' : 'text-gray-400'}>
+                      <span className={req.check ? 'text-green-600 dark:text-green-400' : 'text-gray-400 dark:text-gray-500'}>
                         {req.check ? '✓' : '○'}
                       </span>
                       <span>{req.label}</span>
@@ -220,17 +222,17 @@ export default function Login() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-2.5 bg-brand-500 text-white rounded-lg font-medium text-sm hover:bg-brand-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="btn-primary w-full py-2.5 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {loading ? t('login.pleaseWait') : tab === 'login' ? t('login.login') : t('login.register')}
           </button>
         </form>
 
-        <p className="mt-4 text-center text-xs text-gray-500">
+        <p className="mt-4 text-center text-xs text-gray-500 dark:text-gray-400">
           {tab === 'login' ? (
-            <>{t('login.noAccount')}<button className="text-brand-500 hover:underline" onClick={() => setTab('register')}>{t('login.registerNow')}</button></>
+            <>{t('login.noAccount')}<button className="text-brand-500 dark:text-brand-400 hover:underline" onClick={() => setTab('register')}>{t('login.registerNow')}</button></>
           ) : (
-            <>{t('login.hasAccount')}<button className="text-brand-500 hover:underline" onClick={() => setTab('login')}>{t('login.goLogin')}</button></>
+            <>{t('login.hasAccount')}<button className="text-brand-500 dark:text-brand-400 hover:underline" onClick={() => setTab('login')}>{t('login.goLogin')}</button></>
           )}
         </p>
       </div>

@@ -15,7 +15,7 @@ function renderDiff(expected: string, actual: string) {
     const a = actual[i] ?? ''
     const ok = e === a
     const ch = a || ' '
-    spans.push(<span key={i} className={ok ? '' : 'bg-red-100 text-red-700'}>{ch}</span>)
+    spans.push(<span key={i} className={ok ? '' : 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400'}>{ch}</span>)
   }
   return <span className="font-mono break-all">{spans}</span>
 }
@@ -51,52 +51,52 @@ export default function PracticeArticles() {
 
   if (queue.length === 0) {
     return (
-      <div className="space-y-4">
-        <div className="rounded-xl border bg-white p-8 text-center">
-          <div className="text-gray-400 text-4xl mb-3">📖</div>
-          <div className="text-gray-500 mb-2">{t('practice.noArticles')}</div>
-          <div className="text-sm text-gray-400">{t('practice.addArticlesFirst')}</div>
+      <div className="space-y-4 page-enter">
+        <div className="glass-card p-8 text-center">
+          <div className="text-gray-400 dark:text-gray-500 text-4xl mb-3">📖</div>
+          <div className="text-gray-500 dark:text-gray-400 mb-2">{t('practice.noArticles')}</div>
+          <div className="text-sm text-gray-400 dark:text-gray-500">{t('practice.addArticlesFirst')}</div>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 page-enter">
       <div className="flex items-center justify-between flex-wrap gap-2">
         <div className="flex gap-2">
-          <button className={`px-3 py-1 rounded border transition-colors ${mode==='type'?'bg-brand-100 border-brand-400':''}`} onClick={()=>setMode('type')}>{t('practice.typingPractice')}</button>
-          <button className={`px-3 py-1 rounded border transition-colors ${mode==='read'?'bg-brand-100 border-brand-400':''}`} onClick={()=>setMode('read')}>{t('practice.readingMode')}</button>
+          <button className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 border ${mode==='type'?'bg-brand-500/10 dark:bg-brand-400/15 border-brand-400 dark:border-brand-500 text-brand-700 dark:text-brand-400':'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400'}`} onClick={()=>setMode('type')}>{t('practice.typingPractice')}</button>
+          <button className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 border ${mode==='read'?'bg-brand-500/10 dark:bg-brand-400/15 border-brand-400 dark:border-brand-500 text-brand-700 dark:text-brand-400':'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400'}`} onClick={()=>setMode('read')}>{t('practice.readingMode')}</button>
         </div>
         <div className="flex items-center gap-3">
-          <span className="text-sm text-gray-500">{index + 1} / {queue.length}</span>
-          <label className="text-sm inline-flex items-center gap-2">
+          <span className="text-sm text-gray-600 dark:text-gray-400">{index + 1} / {queue.length}</span>
+          <label className="text-sm inline-flex items-center gap-2 text-gray-600 dark:text-gray-400">
             <input type="checkbox" className="accent-brand-600" checked={showZh} onChange={e=>setShowZh(e.target.checked)} /> {t('practice.showChinese')}
           </label>
         </div>
       </div>
 
-      <div className="rounded-xl border bg-white p-4">
-        <div className="text-lg font-semibold mb-2">{current?.title}</div>
+      <div className="glass-card p-4">
+        <div className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">{current?.title}</div>
         {mode==='read' ? (
           <div className="space-y-3">
-            {showZh && current?.contentZh && <div className="text-sm text-gray-700 whitespace-pre-wrap">{current.contentZh}</div>}
-            <div className="whitespace-pre-wrap">{current?.content}</div>
+            {showZh && current?.contentZh && <div className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap">{current.contentZh}</div>}
+            <div className="whitespace-pre-wrap text-gray-900 dark:text-gray-100">{current?.content}</div>
             <div className="mt-3">
-              <button className="px-3 py-2 border rounded hover:bg-gray-50 transition-colors" onClick={()=>{fetch(`${API_BASE}/api/stats/event`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({type:'review'})}); setIndex(i=> (i+1) % queue.length)}}>{t('practice.nextArticle')}</button>
+              <button className="btn-secondary" onClick={()=>{fetch(`${API_BASE}/api/stats/event`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({type:'review'})}); setIndex(i=> (i+1) % queue.length)}}>{t('practice.nextArticle')}</button>
             </div>
           </div>
         ) : (
           <div className="space-y-3">
-            <div className="text-sm text-gray-500">{t('practice.line', { current: lineIndex + 1, total: enLines.length })}</div>
+            <div className="text-sm text-gray-500 dark:text-gray-400">{t('practice.line', { current: lineIndex + 1, total: enLines.length })}</div>
             {showZh && zhLines[lineIndex] && (
-              <div className="text-sm text-gray-700">{t('practice.chineseLabel')}<span className="font-mono">{zhLines[lineIndex]}</span></div>
+              <div className="text-sm text-gray-700 dark:text-gray-300">{t('practice.chineseLabel')}<span className="font-mono">{zhLines[lineIndex]}</span></div>
             )}
-            <div>{t('practice.originalLabel')}<span className="font-mono">{expected}</span></div>
-            <input className={`w-full border rounded px-3 py-2 font-mono transition-colors ${isCorrect?'border-green-500':'border-gray-300'}`} placeholder={t('practice.inputLinePlaceholder')} value={typed} onChange={e=>setTyped(e.target.value)} onKeyDown={e=>e.key==='Enter'&&nextLine()} />
-            <div className="text-sm">{t('practice.resultLabel')}{renderDiff(expected, typed)}</div>
+            <div className="text-gray-900 dark:text-gray-100">{t('practice.originalLabel')}<span className="font-mono">{expected}</span></div>
+            <input className={`w-full input-glass font-mono transition-colors ${isCorrect?'border-green-500 dark:border-green-400':'border-gray-300 dark:border-gray-600'}`} placeholder={t('practice.inputLinePlaceholder')} value={typed} onChange={e=>setTyped(e.target.value)} onKeyDown={e=>e.key==='Enter'&&nextLine()} />
+            <div className="text-sm text-gray-900 dark:text-gray-100">{t('practice.resultLabel')}{renderDiff(expected, typed)}</div>
             <div className="mt-3 flex gap-2">
-              <button className={`px-3 py-2 rounded transition-colors ${isCorrect?'bg-green-600 text-white hover:bg-green-700':'bg-gray-900 text-white hover:bg-gray-800'}`} onClick={nextLine}>{isCorrect ? t('practice.correctNextLine') : t('practice.nextLine')}</button>
+              <button className={`px-3 py-2 rounded-lg transition-all duration-200 ${isCorrect?'bg-green-600 dark:bg-green-500 text-white hover:bg-green-700 dark:hover:bg-green-600':'bg-gray-900 dark:bg-gray-700 text-white hover:bg-gray-800 dark:hover:bg-gray-600'}`} onClick={nextLine}>{isCorrect ? t('practice.correctNextLine') : t('practice.nextLine')}</button>
             </div>
           </div>
         )}

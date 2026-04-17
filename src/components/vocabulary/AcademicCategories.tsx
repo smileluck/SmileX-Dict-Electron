@@ -23,7 +23,7 @@ const ACADEMIC_CATEGORIES: AcademicCategory[] = [
     name: '人文学科',
     description: '文学、历史、哲学等领域的词汇',
     icon: 'book',
-    color: 'text-purple-600 bg-purple-100',
+    color: 'text-purple-600 dark:text-purple-400 bg-purple-100 dark:bg-purple-900/30',
     disciplines: ['Literature', 'History', 'Philosophy', 'Art'],
     difficultyLevels: [3, 4, 5]
   },
@@ -32,7 +32,7 @@ const ACADEMIC_CATEGORIES: AcademicCategory[] = [
     name: '社会科学',
     description: '社会学、心理学、政治学等学术词汇',
     icon: 'share',
-    color: 'text-blue-600 bg-blue-100',
+    color: 'text-blue-600 dark:text-blue-400 bg-blue-100 dark:bg-blue-900/30',
     disciplines: ['Sociology', 'Psychology', 'Political Science', 'Economics'],
     difficultyLevels: [3, 4, 5]
   },
@@ -41,7 +41,7 @@ const ACADEMIC_CATEGORIES: AcademicCategory[] = [
     name: '理工学科',
     description: '科学、技术、工程、数学领域的术语',
     icon: 'grid',
-    color: 'text-green-600 bg-green-100',
+    color: 'text-green-600 dark:text-green-400 bg-green-100 dark:bg-green-900/30',
     disciplines: ['Science', 'Technology', 'Engineering', 'Mathematics'],
     difficultyLevels: [3, 4, 5]
   },
@@ -50,7 +50,7 @@ const ACADEMIC_CATEGORIES: AcademicCategory[] = [
     name: '商务英语',
     description: '商业、金融、管理领域的专业词汇',
     icon: 'chart',
-    color: 'text-amber-600 bg-amber-100',
+    color: 'text-amber-600 dark:text-amber-400 bg-amber-100 dark:bg-amber-900/30',
     disciplines: ['Business', 'Finance', 'Management', 'Marketing'],
     difficultyLevels: [2, 3, 4]
   },
@@ -59,7 +59,7 @@ const ACADEMIC_CATEGORIES: AcademicCategory[] = [
     name: '医学词汇',
     description: '医疗、健康、生物医学领域的术语',
     icon: 'mic',
-    color: 'text-red-600 bg-red-100',
+    color: 'text-red-600 dark:text-red-400 bg-red-100 dark:bg-red-900/30',
     disciplines: ['Medicine', 'Healthcare', 'Biology'],
     difficultyLevels: [4, 5]
   },
@@ -68,7 +68,7 @@ const ACADEMIC_CATEGORIES: AcademicCategory[] = [
     name: '法律英语',
     description: '法律、法规、司法领域的专业术语',
     icon: 'info',
-    color: 'text-gray-600 bg-gray-100',
+    color: 'text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-gray-700',
     disciplines: ['Law', 'Justice', 'Regulation'],
     difficultyLevels: [4, 5]
   },
@@ -77,7 +77,7 @@ const ACADEMIC_CATEGORIES: AcademicCategory[] = [
     name: '日常用语',
     description: '日常生活中常用的基础词汇',
     icon: 'chat-bubble',
-    color: 'text-teal-600 bg-teal-100',
+    color: 'text-teal-600 dark:text-teal-400 bg-teal-100 dark:bg-teal-900/30',
     disciplines: ['General', 'Daily Life'],
     difficultyLevels: [1, 2]
   },
@@ -86,7 +86,7 @@ const ACADEMIC_CATEGORIES: AcademicCategory[] = [
     name: '学术短语',
     description: '学术论文中常用的固定表达和短语',
     icon: 'pencil',
-    color: 'text-indigo-600 bg-indigo-100',
+    color: 'text-indigo-600 dark:text-indigo-400 bg-indigo-100 dark:bg-indigo-900/30',
     disciplines: ['Academic Writing', 'Research'],
     difficultyLevels: [2, 3, 4]
   }
@@ -155,14 +155,11 @@ export default function AcademicCategories({ word, onCategorySelect }: AcademicC
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null)
   const [expandedCategory, setExpandedCategory] = useState<string | null>(null)
   
-  // Find categories that might match the word
   const matchingCategories = ACADEMIC_CATEGORIES.filter(category => {
-    // Simple keyword matching for demonstration
     const categoryKeywords = category.name + category.description
     const wordLower = word.term.toLowerCase()
     const keywordsLower = categoryKeywords.toLowerCase()
     
-    // Check if word might belong to this category
     return (
       category.disciplines.some(disc => wordLower.includes(disc.toLowerCase())) ||
       wordLower.includes(category.name.toLowerCase()) ||
@@ -171,7 +168,6 @@ export default function AcademicCategories({ word, onCategorySelect }: AcademicC
     )
   })
   
-  // Get related words for selected category
   const getRelatedWords = (category: AcademicCategory) => {
     const words: Array<DisciplineWord & { discipline: string }> = []
     
@@ -183,7 +179,7 @@ export default function AcademicCategories({ word, onCategorySelect }: AcademicC
       }
     })
     
-    return words.slice(0, 5) // Limit to 5 related words
+    return words.slice(0, 5)
   }
   
   if (matchingCategories.length === 0) {
@@ -193,11 +189,10 @@ export default function AcademicCategories({ word, onCategorySelect }: AcademicC
   return (
     <div className="space-y-3">
       <div className="flex items-center gap-2">
-        <Icon name="academic-cap" size={16} className="text-brand-600" />
-        <h4 className="text-sm font-medium text-gray-700">学术词汇分类</h4>
+        <Icon name="academic-cap" size={16} className="text-brand-600 dark:text-brand-400" />
+        <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300">学术词汇分类</h4>
       </div>
       
-      {/* Matching categories */}
       <div className="flex flex-wrap gap-2">
         {matchingCategories.map(category => (
           <button
@@ -210,7 +205,7 @@ export default function AcademicCategories({ word, onCategorySelect }: AcademicC
             className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm border transition-colors ${
               selectedCategory === category.id 
                 ? `${category.color} border-current font-medium` 
-                : 'bg-gray-50 text-gray-600 border-gray-200 hover:bg-gray-100'
+                : 'bg-gray-50 dark:bg-gray-700/30 text-gray-600 dark:text-gray-400 border-gray-200 dark:border-gray-700/50 hover:bg-gray-100 dark:hover:bg-gray-700/50'
             }`}
           >
             <Icon name={category.icon as any} size={14} />
@@ -219,9 +214,8 @@ export default function AcademicCategories({ word, onCategorySelect }: AcademicC
         ))}
       </div>
       
-      {/* Category details */}
       {expandedCategory && (
-        <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+        <div className="bg-gray-50 dark:bg-gray-700/20 rounded-lg p-4 border border-gray-200 dark:border-gray-700/50">
           {(() => {
             const category = ACADEMIC_CATEGORIES.find(c => c.id === expandedCategory)
             if (!category) return null
@@ -231,45 +225,43 @@ export default function AcademicCategories({ word, onCategorySelect }: AcademicC
             return (
               <div className="space-y-4">
                 <div>
-                  <h5 className="font-medium text-gray-900 mb-1">{category.name}</h5>
-                  <p className="text-sm text-gray-600">{category.description}</p>
+                  <h5 className="font-medium text-gray-900 dark:text-gray-100 mb-1">{category.name}</h5>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">{category.description}</p>
                   
                   <div className="mt-2 flex flex-wrap gap-1">
                     {category.disciplines.map(disc => (
-                      <span key={disc} className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded">
+                      <span key={disc} className="text-xs bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 px-2 py-1 rounded">
                         {disc}
                       </span>
                     ))}
                   </div>
                 </div>
                 
-                {/* Related academic words */}
                 {relatedWords.length > 0 && (
                   <div>
-                    <h6 className="text-sm font-medium text-gray-700 mb-2">相关学术词汇</h6>
+                    <h6 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">相关学术词汇</h6>
                     <div className="space-y-2">
                       {relatedWords.map((relatedWord, idx) => (
-                        <div key={idx} className="bg-white rounded p-3 border border-gray-200">
+                        <div key={idx} className="bg-white dark:bg-gray-800 rounded p-3 border border-gray-200 dark:border-gray-700/50">
                           <div className="flex items-center justify-between mb-1">
-                            <span className="font-medium text-gray-900">{relatedWord.word}</span>
-                            <span className="text-xs text-gray-500">
+                            <span className="font-medium text-gray-900 dark:text-gray-100">{relatedWord.word}</span>
+                            <span className="text-xs text-gray-500 dark:text-gray-400">
                               {relatedWord.discipline} • 词频: {relatedWord.frequency}%
                             </span>
                           </div>
-                          <p className="text-sm text-gray-600 mb-2">{relatedWord.definition}</p>
+                          <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">{relatedWord.definition}</p>
                           <div className="flex items-center justify-between">
                             <span className={`text-xs px-2 py-1 rounded ${
-                              relatedWord.register === 'academic' ? 'bg-purple-100 text-purple-700' :
-                              relatedWord.register === 'formal' ? 'bg-gray-100 text-gray-700' :
-                              'bg-green-100 text-green-700'
+                              relatedWord.register === 'academic' ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400' :
+                              relatedWord.register === 'formal' ? 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-400' :
+                              'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400'
                             }`}>
                               {relatedWord.register === 'academic' ? '学术用语' :
                                relatedWord.register === 'formal' ? '正式用语' : '日常用语'}
                             </span>
                             <button 
-                              className="text-xs text-brand-600 hover:text-brand-700"
+                              className="text-xs text-brand-600 dark:text-brand-400 hover:text-brand-700 dark:hover:text-brand-300"
                               onClick={() => {
-                                // Here you could navigate to this word
                                 console.log('Navigate to:', relatedWord.word)
                               }}
                             >
@@ -282,10 +274,9 @@ export default function AcademicCategories({ word, onCategorySelect }: AcademicC
                   </div>
                 )}
                 
-                {/* Learning recommendations */}
-                <div className="bg-blue-50 rounded-lg p-3 border border-blue-200">
-                  <h6 className="text-sm font-medium text-blue-800 mb-1">学习建议</h6>
-                  <ul className="text-xs text-blue-700 space-y-1">
+                <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-3 border border-blue-200 dark:border-blue-800/50">
+                  <h6 className="text-sm font-medium text-blue-800 dark:text-blue-300 mb-1">学习建议</h6>
+                  <ul className="text-xs text-blue-700 dark:text-blue-400 space-y-1">
                     <li>• 这类词汇需要在<span className="font-medium">特定语境</span>中学习</li>
                     <li>• 建议阅读<span className="font-medium">相关学科的英文材料</span></li>
                     <li>• 注意<span className="font-medium">术语的精确含义</span>和使用场合</li>

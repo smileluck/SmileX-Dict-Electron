@@ -59,13 +59,11 @@ export default function VocabularyNetwork() {
     const patterns: Record<string, { words: string[]; count: number }> = {}
 
     wrongWords.forEach(w => {
-      // Group by difficulty
       const key = `difficulty_${w.difficulty}`
       if (!patterns[key]) patterns[key] = { words: [], count: 0 }
       patterns[key].words.push(w.term)
       patterns[key].count++
 
-      // Group by category
       const catKey = `category_${w.category}`
       if (!patterns[catKey]) patterns[catKey] = { words: [], count: 0 }
       patterns[catKey].words.push(w.term)
@@ -90,10 +88,8 @@ export default function VocabularyNetwork() {
     const nodes: VocabNode[] = []
     const edges: VocabEdge[] = []
 
-    // Center node
     nodes.push({ id: target.id, word: target.term, type: 'category', strength: 1, x: 200, y: 200 })
 
-    // Synonym nodes
     if (target.synonyms) {
       target.synonyms.forEach((syn, idx) => {
         const angle = (2 * Math.PI * idx) / target.synonyms!.length
@@ -110,7 +106,6 @@ export default function VocabularyNetwork() {
       })
     }
 
-    // Related words (same category)
     const related = words
       .filter(w => w.id !== target.id && w.category === target.category)
       .slice(0, 6)
@@ -151,38 +146,35 @@ export default function VocabularyNetwork() {
   ]
 
   return (
-    <div className="space-y-4">
-      {/* Header */}
-      <div className="rounded-xl border bg-white p-4">
-        <h3 className="font-semibold text-lg flex items-center gap-2 mb-3">
-          <Icon name="chart" size={20} className="text-brand-600" />
+    <div className="space-y-4 page-enter">
+      <div className="glass-card p-4">
+        <h3 className="font-semibold text-lg text-gray-900 dark:text-gray-100 flex items-center gap-2 mb-3">
+          <Icon name="chart" size={20} className="text-brand-600 dark:text-brand-400" />
           词汇网络分析
         </h3>
 
-        {/* Category mastery overview */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
           {Object.entries(masteryStats.byCategory).map(([cat, stat]) => (
-            <div key={cat} className="rounded-lg bg-gray-50 p-2 text-center">
-              <div className="text-sm font-medium text-gray-700">{cat}</div>
-              <div className="text-lg font-bold text-brand-600">
+            <div key={cat} className="rounded-lg bg-gray-50 dark:bg-gray-700/30 p-2 text-center">
+              <div className="text-sm font-medium text-gray-700 dark:text-gray-300">{cat}</div>
+              <div className="text-lg font-bold text-brand-600 dark:text-brand-400">
                 {stat.total > 0 ? Math.round((stat.mastered / stat.total) * 100) : 0}%
               </div>
-              <div className="text-xs text-gray-500">{stat.mastered}/{stat.total}</div>
+              <div className="text-xs text-gray-500 dark:text-gray-400">{stat.mastered}/{stat.total}</div>
             </div>
           ))}
         </div>
       </div>
 
-      {/* Tab navigation */}
-      <div className="flex border-b">
+      <div className="flex border-b border-gray-200 dark:border-gray-700">
         {tabs.map(tab => (
           <button
             key={tab.key}
             onClick={() => setActiveTab(tab.key)}
             className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 text-sm transition-colors ${
               activeTab === tab.key
-                ? 'text-brand-600 border-b-2 border-brand-500 font-medium'
-                : 'text-gray-500 hover:text-gray-700'
+                ? 'text-brand-600 dark:text-brand-400 border-b-2 border-brand-500 dark:border-brand-400 font-medium'
+                : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
             }`}
           >
             <Icon name={tab.icon as any} size={14} />
@@ -191,13 +183,12 @@ export default function VocabularyNetwork() {
         ))}
       </div>
 
-      {/* Tab content */}
       {activeTab === 'network' && (
-        <div className="rounded-xl border bg-white p-4">
+        <div className="glass-card p-4">
           <div className="mb-3">
-            <label className="text-sm font-medium text-gray-700 mb-1 block">选择单词查看关联</label>
+            <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 block">选择单词查看关联</label>
             <select
-              className="w-full border rounded px-3 py-2 text-sm"
+              className="w-full input-glass border rounded px-3 py-2 text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border-gray-200 dark:border-gray-700"
               value={selectedWord || ''}
               onChange={e => setSelectedWord(e.target.value)}
             >
@@ -209,9 +200,8 @@ export default function VocabularyNetwork() {
           </div>
 
           {selectedWord && networkData.nodes.length > 0 && (
-            <div className="border rounded-lg bg-gray-50 relative" style={{ height: '400px' }}>
+            <div className="border border-gray-200 dark:border-gray-700/50 rounded-lg bg-gray-50 dark:bg-gray-700/20 relative" style={{ height: '400px' }}>
               <svg width="100%" height="100%" viewBox="0 0 400 400">
-                {/* Edges */}
                 {networkData.edges.map((edge, idx) => {
                   const source = networkData.nodes.find(n => n.id === edge.source)
                   const target = networkData.nodes.find(n => n.id === edge.target)
@@ -230,7 +220,6 @@ export default function VocabularyNetwork() {
                     />
                   )
                 })}
-                {/* Nodes */}
                 {networkData.nodes.map(node => (
                   <g key={node.id}>
                     <circle
@@ -257,7 +246,7 @@ export default function VocabularyNetwork() {
                   </g>
                 ))}
               </svg>
-              <div className="absolute bottom-2 left-2 flex gap-3 text-xs text-gray-500">
+              <div className="absolute bottom-2 left-2 flex gap-3 text-xs text-gray-500 dark:text-gray-400">
                 <span className="flex items-center gap-1">
                   <span className="w-3 h-3 rounded-full bg-blue-500 inline-block" /> 中心词
                 </span>
@@ -274,13 +263,13 @@ export default function VocabularyNetwork() {
       )}
 
       {activeTab === 'clusters' && (
-        <div className="rounded-xl border bg-white p-4 space-y-4">
-          <h4 className="font-medium text-gray-700">语义聚类分析</h4>
+        <div className="glass-card p-4 space-y-4">
+          <h4 className="font-medium text-gray-700 dark:text-gray-300">语义聚类分析</h4>
           {semanticClusters.map(cluster => (
-            <div key={cluster.theme} className="border rounded-lg p-3">
+            <div key={cluster.theme} className="border border-gray-200 dark:border-gray-700/50 rounded-lg p-3">
               <div className="flex items-center justify-between mb-2">
-                <span className="font-medium text-gray-900">{cluster.theme}</span>
-                <span className="text-xs bg-brand-100 text-brand-700 px-2 py-0.5 rounded">
+                <span className="font-medium text-gray-900 dark:text-gray-100">{cluster.theme}</span>
+                <span className="text-xs bg-brand-100 dark:bg-brand-900/30 text-brand-700 dark:text-brand-400 px-2 py-0.5 rounded">
                   {cluster.words.length} 词
                 </span>
               </div>
@@ -293,8 +282,8 @@ export default function VocabularyNetwork() {
                       key={word}
                       className={`text-xs px-2 py-1 rounded ${
                         isMastered
-                          ? 'bg-green-50 text-green-700 border border-green-200'
-                          : 'bg-gray-50 text-gray-600 border border-gray-200'
+                          ? 'bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 border border-green-200 dark:border-green-800/50'
+                          : 'bg-gray-50 dark:bg-gray-700/30 text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-gray-700/50'
                       }`}
                     >
                       {word}
@@ -308,30 +297,30 @@ export default function VocabularyNetwork() {
       )}
 
       {activeTab === 'errors' && (
-        <div className="rounded-xl border bg-white p-4 space-y-4">
-          <h4 className="font-medium text-gray-700">错词模式分析</h4>
+        <div className="glass-card p-4 space-y-4">
+          <h4 className="font-medium text-gray-700 dark:text-gray-300">错词模式分析</h4>
           {errorPatterns.length === 0 ? (
-            <div className="text-center text-gray-400 py-8">
-              <Icon name="check" size={32} className="mx-auto mb-2 text-green-400" />
+            <div className="text-center text-gray-400 dark:text-gray-500 py-8">
+              <Icon name="check" size={32} className="mx-auto mb-2 text-green-400 dark:text-green-500" />
               <p>暂无错词记录，继续保持！</p>
             </div>
           ) : (
             errorPatterns.map((pattern, idx) => (
-              <div key={idx} className="border rounded-lg p-3 bg-red-50 border-red-200">
+              <div key={idx} className="border border-red-200 dark:border-red-800/50 rounded-lg p-3 bg-red-50 dark:bg-red-900/20">
                 <div className="flex items-center justify-between mb-2">
-                  <span className="font-medium text-red-800">{pattern.description}</span>
-                  <span className="text-xs bg-red-100 text-red-700 px-2 py-0.5 rounded">
+                  <span className="font-medium text-red-800 dark:text-red-300">{pattern.description}</span>
+                  <span className="text-xs bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 px-2 py-0.5 rounded">
                     {pattern.frequency} 次
                   </span>
                 </div>
                 <div className="flex flex-wrap gap-1 mb-2">
                   {pattern.affectedWords.slice(0, 8).map(word => (
-                    <span key={word} className="text-xs bg-white text-red-700 px-2 py-0.5 rounded border border-red-200">
+                    <span key={word} className="text-xs bg-white dark:bg-gray-800 text-red-700 dark:text-red-400 px-2 py-0.5 rounded border border-red-200 dark:border-red-800/50">
                       {word}
                     </span>
                   ))}
                 </div>
-                <div className="text-xs text-red-600">
+                <div className="text-xs text-red-600 dark:text-red-400">
                   <span className="font-medium">建议：</span>
                   {pattern.suggestions.join('；')}
                 </div>
