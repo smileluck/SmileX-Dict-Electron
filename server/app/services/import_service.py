@@ -8,14 +8,29 @@ from sqlalchemy.orm import Session
 
 from app.config import settings as app_settings
 from app.database import SessionLocal
-from app.models.dict import DictItemModel
-from app.models.word import WordItemModel
+from app.models.dict import DictModel
+from app.models.dict_word import DictWordModel
+from app.models.user_word_progress import UserWordProgressModel
+from app.models.word import WordModel
+from app.models.word_meaning import WordMeaningModel
+from app.models.word_example import WordExampleModel
+from app.models.article import ArticleItemModel
+from app.models.stat import DailyStatModel
+from app.models.settings import UserSettingsModel
 from app.schemas.common import ExportData
 from app.schemas.dict import DictItem
+from app.schemas.word import WordItem
 from app.schemas.article import ArticleItem
 from app.schemas.stat import StatItem
 from app.schemas.settings import UserSettings
-from app.services.word_service import word_item_from_model
+from app.services.word_service import (
+    word_item_from_models,
+    get_or_create_word,
+    _build_meaning_from_rows,
+    _build_example_from_rows,
+)
+from app.services.dict_service import get_dict_or_404, add_word_to_dict
+from app.services.learning_service import get_or_create_progress
 from app.services.lookup_service import lookup_word
 
 logger = logging.getLogger(__name__)
@@ -24,13 +39,75 @@ _import_tasks: dict[str, dict] = {}
 _import_lock = threading.Lock()
 
 
-def export_all_data(db: Session, user_id: str) -> ExportData:
-    from app.models.article import ArticleItemModel
-    from app.models.stat import DailyStatModel
-    from app.models.settings import UserSettingsModel
+def _word_item_from_word_model(
+    db: Session, word: WordModel, user_id: str, dict_id: str = None
+) -> WordItem:
+    meaning_rows = (
+        db.query(WordMeaningModel)
+        .filter(WordMeaningModel.word_id == word.id)
+        .order_by(WordMeaningModel.sort_order)
+        .all()
+    )
 
-    dict_rows = db.query(DictItemModel).filter(DictItemModel.userId == user_id).all()
-    word_rows = db.query(WordItemModel).filter(WordItemModel.userId == user_id).all()
+    example_rows = (
+        db.query(WordExampleModel)
+        .filter(WordExampleModel.word_id == word.id)
+        .order_by(WordExampleModel.sort_order)
+        .all()
+    )
+
+    progress = (
+        db.query(UserWordProgressModel)
+        .filter(
+            UserWordProgressModel.user_id == user_id,
+            UserWordProgressModel.word_id == word.id,
+        )
+        .first()
+    )
+
+    return word_item_from_models(word, meaning_rows, example_rows, progress, dict_id)
+
+
+def export_all_data(db: Session, user_id: str) -> ExportData:
+    dict_rows = db.query(DictModel).filter(DictModel.user_id == user_id).all()
+
+    dict_items = []
+    for d in dict_rows:
+        dict_items.append(
+            DictItem(
+                id=d.id,
+                name=d.name,
+                wordCount=d.word_count or 0,
+                source=d.source or "custom",
+            )
+        )
+
+    word_items = []
+    user_progress_rows = (
+        db.query(UserWordProgressModel)
+        .filter(
+            UserWordProgressModel.user_id == user_id,
+        )
+        .all()
+    )
+
+    for progress in user_progress_rows:
+        word = db.query(WordModel).filter(WordModel.id == progress.word_id).first()
+        if not word:
+            continue
+
+        dict_word = (
+            db.query(DictWordModel)
+            .filter(
+                DictWordModel.word_id == word.id,
+            )
+            .first()
+        )
+        dict_id = dict_word.dict_id if dict_word else None
+
+        word_item = _word_item_from_word_model(db, word, user_id, dict_id)
+        word_items.append(word_item)
+
     article_rows = (
         db.query(ArticleItemModel).filter(ArticleItemModel.userId == user_id).all()
     )
@@ -40,11 +117,8 @@ def export_all_data(db: Session, user_id: str) -> ExportData:
     )
 
     return ExportData(
-        dicts=[
-            DictItem(id=r.id, name=r.name, wordCount=r.wordCount, source=r.source)
-            for r in dict_rows
-        ],
-        words=[word_item_from_model(r) for r in word_rows],
+        dicts=dict_items,
+        words=word_items,
         articles=[
             ArticleItem(
                 id=r.id,
@@ -76,56 +150,73 @@ def export_all_data(db: Session, user_id: str) -> ExportData:
 
 
 def import_all_data(db: Session, user_id: str, payload: ExportData) -> None:
-    from app.models.article import ArticleItemModel
-    from app.models.stat import DailyStatModel
-    from app.models.settings import UserSettingsModel
-
     for d in payload.dicts:
-        existing = db.query(DictItemModel).filter(DictItemModel.id == d.id).first()
+        existing = db.query(DictModel).filter(DictModel.id == d.id).first()
         if existing:
             existing.name = d.name
-            existing.wordCount = d.wordCount
+            existing.word_count = d.wordCount
             existing.source = d.source
         else:
             db.add(
-                DictItemModel(
+                DictModel(
                     id=d.id,
                     name=d.name,
-                    wordCount=d.wordCount,
+                    word_count=d.wordCount,
                     source=d.source,
-                    userId=user_id,
+                    user_id=user_id,
                 )
             )
 
     for w in payload.words:
-        existing = db.query(WordItemModel).filter(WordItemModel.id == w.id).first()
-        synonyms = ",".join(w.synonyms or [])
-        if existing:
-            existing.term = w.term
-            existing.ipa = w.ipa
-            existing.meaning = w.meaning
-            existing.enMeaning = w.enMeaning
-            existing.example = w.example
-            existing.synonyms = synonyms
-            existing.synonymsNote = w.synonymsNote
-            existing.status = w.status
-            existing.dictId = w.dictId
-        else:
-            db.add(
-                WordItemModel(
-                    id=w.id,
-                    term=w.term,
-                    ipa=w.ipa,
-                    meaning=w.meaning,
-                    enMeaning=w.enMeaning,
-                    example=w.example,
-                    synonyms=synonyms,
-                    synonymsNote=w.synonymsNote,
-                    status=w.status,
-                    dictId=w.dictId,
-                    userId=user_id,
+        word = get_or_create_word(db, w.term)
+        if w.meaning:
+            for line in w.meaning.split("\n"):
+                line = line.strip()
+                if not line:
+                    continue
+                existing_meaning = (
+                    db.query(WordMeaningModel)
+                    .filter(
+                        WordMeaningModel.word_id == word.id,
+                        WordMeaningModel.description == line,
+                    )
+                    .first()
                 )
-            )
+                if not existing_meaning:
+                    db.add(
+                        WordMeaningModel(
+                            id=f"wm{uuid.uuid4().hex[:12]}",
+                            word_id=word.id,
+                            description=line,
+                        )
+                    )
+
+        if w.example:
+            for line in w.example.split("\n"):
+                line = line.strip()
+                if not line:
+                    continue
+                existing_ex = (
+                    db.query(WordExampleModel)
+                    .filter(
+                        WordExampleModel.word_id == word.id,
+                        WordExampleModel.sentence == line,
+                    )
+                    .first()
+                )
+                if not existing_ex:
+                    db.add(
+                        WordExampleModel(
+                            id=f"we{uuid.uuid4().hex[:12]}",
+                            word_id=word.id,
+                            sentence=line,
+                        )
+                    )
+
+        if w.dictId:
+            add_word_to_dict(db, w.dictId, word.id)
+
+        get_or_create_progress(db, user_id, word.id)
 
     for a in payload.articles:
         existing = (
@@ -210,60 +301,45 @@ def _run_txt_import(task_id: str, words: list[str], dict_id: str, user_id: str):
                 _import_tasks[task_id]["current"] = i + 1
                 _import_tasks[task_id]["current_word"] = word_text
 
-            existing = (
-                db.query(WordItemModel)
+            existing_word = (
+                db.query(WordModel)
                 .filter(
-                    WordItemModel.term == word_text, WordItemModel.userId == user_id
+                    WordModel.term == word_text,
                 )
                 .first()
             )
-            if existing:
-                skipped_count += 1
-                continue
+
+            if existing_word:
+                existing_progress = (
+                    db.query(UserWordProgressModel)
+                    .filter(
+                        UserWordProgressModel.user_id == user_id,
+                        UserWordProgressModel.word_id == existing_word.id,
+                    )
+                    .first()
+                )
+                if existing_progress:
+                    skipped_count += 1
+                    continue
 
             result = lookup_word(word_text)
             if not result:
                 failed_count += 1
                 continue
 
-            word_id = f"w{uuid.uuid4().hex[:12]}"
-            synonyms_str = ",".join(result.get("synonyms", []))
-            new_word = WordItemModel(
-                id=word_id,
-                term=result["term"],
-                ipa=result.get("ipa", ""),
-                meaning=result.get("meaning", ""),
-                enMeaning=result.get("en_meaning", ""),
-                example="\n".join(result.get("examples", [])[:3]),
-                synonyms=synonyms_str,
-                status="new",
-                dictId=dict_id,
-                userId=user_id,
-            )
-            db.add(new_word)
+            word = get_or_create_word(db, word_text, result)
+
+            if dict_id:
+                add_word_to_dict(db, dict_id, word.id)
+
+            get_or_create_progress(db, user_id, word.id)
+
             imported_count += 1
 
             if imported_count % batch_size == 0:
                 db.commit()
 
         db.commit()
-
-        if dict_id:
-            actual_count = (
-                db.query(WordItemModel)
-                .filter(
-                    WordItemModel.dictId == dict_id, WordItemModel.userId == user_id
-                )
-                .count()
-            )
-            dict_item = (
-                db.query(DictItemModel)
-                .filter(DictItemModel.id == dict_id, DictItemModel.userId == user_id)
-                .first()
-            )
-            if dict_item:
-                dict_item.wordCount = actual_count
-                db.commit()
 
         with _import_lock:
             _import_tasks[task_id]["status"] = "completed"
@@ -330,8 +406,6 @@ def get_import_status(task_id: str) -> dict:
 
 
 def quick_import_txt(db: Session, words: list[str], dict_id: str, user_id: str) -> dict:
-    from app.services.dict_service import get_dict_or_404
-
     get_dict_or_404(db, dict_id, user_id)
 
     if len(words) > app_settings.MAX_QUICK_IMPORT_WORDS:
@@ -343,41 +417,31 @@ def quick_import_txt(db: Session, words: list[str], dict_id: str, user_id: str) 
     imported = 0
     skipped = 0
     for word_text in words:
-        existing = (
-            db.query(WordItemModel)
-            .filter(WordItemModel.term == word_text, WordItemModel.userId == user_id)
+        word_text = word_text.strip()
+        if not word_text:
+            continue
+
+        word = get_or_create_word(db, word_text)
+
+        existing_progress = (
+            db.query(UserWordProgressModel)
+            .filter(
+                UserWordProgressModel.user_id == user_id,
+                UserWordProgressModel.word_id == word.id,
+            )
             .first()
         )
-        if existing:
+        if existing_progress:
             skipped += 1
             continue
-        word_id = f"w{uuid.uuid4().hex[:12]}"
-        new_word = WordItemModel(
-            id=word_id,
-            term=word_text,
-            meaning=word_text,
-            status="new",
-            dictId=dict_id,
-            userId=user_id,
-        )
-        db.add(new_word)
+
+        if dict_id:
+            add_word_to_dict(db, dict_id, word.id)
+
+        get_or_create_progress(db, user_id, word.id)
         imported += 1
 
     db.commit()
-
-    actual_count = (
-        db.query(WordItemModel)
-        .filter(WordItemModel.dictId == dict_id, WordItemModel.userId == user_id)
-        .count()
-    )
-    dict_item = (
-        db.query(DictItemModel)
-        .filter(DictItemModel.id == dict_id, DictItemModel.userId == user_id)
-        .first()
-    )
-    if dict_item:
-        dict_item.wordCount = actual_count
-        db.commit()
 
     return {
         "imported": imported,

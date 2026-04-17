@@ -92,8 +92,6 @@ export default function Panel() {
 
   const maxForecast = Math.max(...reviewForecast.map(f => f.count), 1)
 
-  const dayLabels = t('panel.daysOfWeek', { returnObjects: true }) as string[]
-
   const maxTrendVal = useMemo(() => {
     if (historyData.length === 0) return 1
     return Math.max(...historyData.map(s => s.newCount + s.reviewCount + s.dictationCount + s.wrongCount), 1)
@@ -200,7 +198,7 @@ export default function Panel() {
                 const total = s.newCount + s.reviewCount + s.dictationCount + s.wrongCount
                 const showLabel = idx % labelInterval === 0 || s.date === today
                 const date = new Date(s.date + 'T00:00:00')
-                const dayLabel = dayLabels[date.getDay()]
+                const dayLabel = dayNames[date.getDay()]
                 const isToday = s.date === today
                 const hasData = total > 0
 

@@ -1,6 +1,6 @@
 import { useSelector, useDispatch } from 'react-redux'
 import type { RootState } from '../store'
-import { addCustom, setActive, updateSpecialCounts, setDicts, updateDict, removeDict } from '../features/dicts/dictsSlice'
+import { setActive, updateSpecialCounts, setDicts } from '../features/dicts/dictsSlice'
 import { useEffect, useState, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Icon from '../components/Icon'

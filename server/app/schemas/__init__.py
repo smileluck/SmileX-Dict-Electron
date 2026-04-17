@@ -5,6 +5,11 @@ from app.schemas.article import ArticleItem, ArticleCreate
 from app.schemas.stat import StatItem, StatEvent
 from app.schemas.settings import UserSettings, UserSettingsUpdate
 from app.schemas.common import ExportData
+from app.schemas.learning import (
+    LearningProgress,
+    LearningProgressUpdate,
+    ReviewWordRequest,
+)
 
 __all__ = [
     "UserRegister",
@@ -24,4 +29,7 @@ __all__ = [
     "UserSettings",
     "UserSettingsUpdate",
     "ExportData",
+    "LearningProgress",
+    "LearningProgressUpdate",
+    "ReviewWordRequest",
 ]

@@ -64,7 +64,7 @@ def import_txt(
         content = raw.decode("utf-8-sig")
     except UnicodeDecodeError:
         try:
-            content = raw.decode("gbk")
+            content = raw.decode("gb")
         except UnicodeDecodeError:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
@@ -113,7 +113,7 @@ def quick_import_txt(
         content = raw.decode("utf-8-sig")
     except UnicodeDecodeError:
         try:
-            content = raw.decode("gbk")
+            content = raw.decode("gb")
         except UnicodeDecodeError:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,

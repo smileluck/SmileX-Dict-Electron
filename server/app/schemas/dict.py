@@ -7,6 +7,8 @@ class DictItem(BaseModel):
     name: str
     wordCount: int = 0
     source: str = "custom"
+    isOfficial: bool = False
+    description: Optional[str] = None
 
 
 class DictCreate(BaseModel):
@@ -16,3 +18,4 @@ class DictCreate(BaseModel):
 
 class DictUpdate(BaseModel):
     name: Optional[str] = None
+    description: Optional[str] = None

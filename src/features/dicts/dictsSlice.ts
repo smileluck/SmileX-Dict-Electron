@@ -51,15 +51,6 @@ const dictsSlice = createSlice({
       const serverDicts = action.payload.filter(d => !specialIds.includes(d.id))
       state.mine = [...specialDicts, ...serverDicts]
     },
-    addServerDict(state, action: PayloadAction<DictItem>) {
-      const specialIds = ['collected', 'wrong', 'mastered']
-      if (!specialIds.includes(action.payload.id)) {
-        const exists = state.mine.find(d => d.id === action.payload.id)
-        if (!exists) {
-          state.mine.push(action.payload)
-        }
-      }
-    },
     updateDict(state, action: PayloadAction<{ id: string; updates: Partial<DictItem> }>) {
       const dict = state.mine.find(d => d.id === action.payload.id)
       if (dict) {
@@ -82,5 +73,5 @@ const dictsSlice = createSlice({
   },
 })
 
-export const { setActive, addCustom, setDicts, addServerDict, updateDict, removeDict, updateSpecialCounts } = dictsSlice.actions
+export const { setActive, addCustom, setDicts, updateDict, removeDict, updateSpecialCounts } = dictsSlice.actions
 export default dictsSlice.reducer

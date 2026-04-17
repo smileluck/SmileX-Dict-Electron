@@ -3,7 +3,6 @@ import { persistStore, persistReducer } from 'redux-persist'
 import storage from 'redux-persist/lib/storage'
 import wordsReducer from '../features/words/wordsSlice'
 import articlesReducer from '../features/articles/articlesSlice'
-import sessionReducer from '../features/session/sessionSlice'
 import dictsReducer from '../features/dicts/dictsSlice'
 import panelReducer from '../features/panel/panelSlice'
 import authReducer from '../features/auth/authSlice'
@@ -12,13 +11,12 @@ import settingsReducer from '../features/settings/settingsSlice'
 const persistConfig = {
   key: 'smilex-dict',
   storage,
-  whitelist: ['words', 'dicts', 'panel', 'articles', 'settings'], // Persist these reducers; auth uses localStorage directly
+  whitelist: ['words', 'dicts', 'panel', 'articles', 'settings'],
 }
 
 const rootReducer = combineReducers({
   words: wordsReducer,
   articles: articlesReducer,
-  session: sessionReducer,
   dicts: dictsReducer,
   panel: panelReducer,
   auth: authReducer,

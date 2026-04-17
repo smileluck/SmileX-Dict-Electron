@@ -39,16 +39,16 @@ export function ToastProvider({ children }: { children: ReactNode }) {
         {toasts.map(toast => (
           <div
             key={toast.id}
-            className={`px-4 py-3 rounded-lg shadow-lg text-sm font-medium animate-slide-in flex items-center gap-2 min-w-[200px] ${
+            className={`px-4 py-3 rounded-xl shadow-glass-lg backdrop-blur-xl text-sm font-medium animate-slide-in flex items-center gap-2.5 min-w-[220px] border ${
               toast.type === 'success'
-                ? 'bg-green-600 text-white'
+                ? 'bg-green-500/90 border-green-400/30 text-white'
                 : toast.type === 'error'
-                ? 'bg-red-600 text-white'
-                : 'bg-gray-800 text-white'
+                ? 'bg-red-500/90 border-red-400/30 text-white'
+                : 'bg-gray-800/90 border-gray-600/30 text-white'
             }`}
             onClick={() => removeToast(toast.id)}
           >
-            <span>
+            <span className="text-base">
               {toast.type === 'success' ? '✓' : toast.type === 'error' ? '✗' : 'ℹ'}
             </span>
             <span>{toast.message}</span>

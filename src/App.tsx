@@ -2,7 +2,6 @@ import { Routes, Route, NavLink, Navigate, useLocation } from 'react-router-dom'
 import { useState, useRef, useEffect } from 'react'
 import { useSelector, useDispatch } from 'react-redux'
 import { useTranslation } from 'react-i18next'
-import { useAppDispatch } from './hooks/useAppDispatch'
 import Home from './routes/Home'
 import Dicts from './routes/Dicts'
 import Panel from './routes/Panel'
@@ -41,13 +40,11 @@ function App() {
   const navigate = useNavigate()
   const moreMenuRef = useRef<HTMLDivElement>(null)
   const userMenuRef = useRef<HTMLDivElement>(null)
-  const dictDispatch = useDispatch()
-
   useEffect(() => {
     if (isAuthenticated) {
-      dictDispatch(loadUserDicts())
+      dispatch(loadUserDicts())
     }
-  }, [isAuthenticated, dictDispatch])
+  }, [isAuthenticated, dispatch])
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -86,6 +83,15 @@ function App() {
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [])
 
+  useEffect(() => {
+    if (mobileMenuOpen) {
+      document.body.style.overflow = 'hidden'
+    } else {
+      document.body.style.overflow = ''
+    }
+    return () => { document.body.style.overflow = '' }
+  }, [mobileMenuOpen])
+
   const navLinks = [
     { to: '/', label: t('nav.home'), public: true },
     { to: '/dicts', label: t('nav.dicts'), public: true },
@@ -106,58 +112,72 @@ function App() {
 
   return (
     <ToastProvider>
-      <div className="min-h-screen bg-gray-50 text-gray-900">
-        <header className="sticky top-0 z-10 bg-white border-b shadow-sm">
-          <div className="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <img src="/smilex.svg" alt="SmileX" className="w-6 h-6" />
-              <h1 className="text-xl font-semibold">SmileX Dict</h1>
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-brand-50/20 dark:from-gray-950 dark:via-gray-900 dark:to-brand-950/20 bg-gradient-mesh dark:bg-gradient-mesh-dark text-gray-900 dark:text-gray-100">
+        <header className="glass-nav sticky top-0 z-30">
+          <div className="max-w-5xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-xl bg-gradient-brand flex items-center justify-center shadow-glow">
+                <img src="/smilex.svg" alt="SmileX" className="w-5 h-5 brightness-0 invert" />
+              </div>
+              <h1 className="text-lg font-bold text-gradient hidden sm:block">SmileX Dict</h1>
             </div>
 
-            {/* Desktop Navigation */}
-            <nav className="hidden md:flex gap-3 text-sm items-center">
+            <nav className="hidden md:flex gap-1 text-sm items-center">
               {navLinks.map(link => (
                 <NavLink
                   key={link.to}
                   to={link.to}
                   end={link.to === '/'}
-                  className={({isActive}) => `px-2 py-1 rounded transition-colors ${isActive ? 'bg-brand-100 text-brand-700' : 'hover:bg-gray-100'}`}
+                  className={({isActive}) =>
+                    `px-3 py-1.5 rounded-lg transition-all duration-200 ${
+                      isActive
+                        ? 'bg-brand-500/10 dark:bg-brand-400/15 text-brand-600 dark:text-brand-400 font-medium'
+                        : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100/80 dark:hover:bg-gray-700/50 hover:text-gray-900 dark:hover:text-gray-200'
+                    }`
+                  }
                 >
                   {link.label}
                 </NavLink>
               ))}
               <button
                 onClick={() => setSearchOpen(true)}
-                className="px-2 py-1 rounded transition-colors flex items-center gap-1 text-gray-500 hover:bg-gray-100"
+                className="px-2.5 py-1.5 rounded-lg transition-all duration-200 flex items-center gap-1.5 text-gray-400 dark:text-gray-500 hover:bg-gray-100/80 dark:hover:bg-gray-700/50 hover:text-gray-600 dark:hover:text-gray-300"
                 title={t('nav.searchHint')}
               >
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
-                <span className="text-xs">{t('nav.ctrlK')}</span>
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+                <kbd className="text-[10px] px-1.5 py-0.5 rounded bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-500 font-mono">{t('nav.ctrlK')}</kbd>
               </button>
               <div className="relative" ref={moreMenuRef}>
                 <button
                   onClick={() => setMoreMenuOpen(!moreMenuOpen)}
-                  className={`px-2 py-1 rounded transition-colors flex items-center gap-1 ${moreMenuOpen ? 'bg-gray-100' : 'hover:bg-gray-100'}`}
+                  className={`px-2.5 py-1.5 rounded-lg transition-all duration-200 flex items-center gap-1 ${
+                    moreMenuOpen
+                      ? 'bg-gray-100 dark:bg-gray-700/70 text-gray-900 dark:text-gray-200'
+                      : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100/80 dark:hover:bg-gray-700/50'
+                  }`}
                 >
                   {t('nav.more')}
                   <svg
-                    className={`w-4 h-4 text-gray-500 transition-transform ${moreMenuOpen ? 'rotate-180' : ''}`}
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
+                    className={`w-3.5 h-3.5 transition-transform duration-200 ${moreMenuOpen ? 'rotate-180' : ''}`}
+                    viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
                   >
-                    <path d="M6 9l6 6 6-9" />
+                    <path d="M6 9l6 6 6-6" />
                   </svg>
                 </button>
                 {moreMenuOpen && (
-                  <div className="absolute right-0 top-full mt-1 bg-white border rounded-lg shadow-lg py-1 min-w-[100px]">
+                  <div className="absolute right-0 top-full mt-2 glass-modal py-1.5 min-w-[140px] animate-scale-in">
                     {moreItems.map(item => (
                       <NavLink
                         key={item.to}
                         to={item.to}
                         onClick={() => setMoreMenuOpen(false)}
-                        className={({isActive}) => `block px-4 py-2 text-sm transition-colors ${isActive ? 'bg-brand-50 text-brand-700' : 'hover:bg-gray-50'}`}
+                        className={({isActive}) =>
+                          `block px-4 py-2 text-sm transition-colors ${
+                            isActive
+                              ? 'bg-brand-500/10 dark:bg-brand-400/15 text-brand-600 dark:text-brand-400'
+                              : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700/50'
+                          }`
+                        }
                       >
                         {item.label}
                       </NavLink>
@@ -166,28 +186,28 @@ function App() {
                 )}
               </div>
               {isAuthenticated ? (
-                <div className="relative ml-4 pl-4 border-l" ref={userMenuRef}>
+                <div className="relative ml-3 pl-3 border-l border-gray-200 dark:border-gray-700" ref={userMenuRef}>
                   <button
                     onClick={() => setUserMenuOpen(!userMenuOpen)}
-                    className={`px-2 py-1 rounded transition-colors flex items-center gap-2 ${userMenuOpen ? 'bg-gray-100' : 'hover:bg-gray-100'}`}
+                    className={`px-2 py-1.5 rounded-lg transition-all duration-200 flex items-center gap-2 ${
+                      userMenuOpen
+                        ? 'bg-gray-100 dark:bg-gray-700/70'
+                        : 'hover:bg-gray-100/80 dark:hover:bg-gray-700/50'
+                    }`}
                   >
-                    <svg className="w-5 h-5 text-gray-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-                      <circle cx="12" cy="7" r="4" />
-                    </svg>
-                    <span className="text-sm text-gray-600">{user?.username}</span>
+                    <div className="w-7 h-7 rounded-full bg-gradient-brand flex items-center justify-center text-white text-xs font-bold ring-2 ring-brand-500/20">
+                      {user?.username?.[0]?.toUpperCase() || 'U'}
+                    </div>
+                    <span className="text-sm text-gray-700 dark:text-gray-300 font-medium">{user?.username}</span>
                     <svg
-                      className={`w-4 h-4 text-gray-500 transition-transform ${userMenuOpen ? 'rotate-180' : ''}`}
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
+                      className={`w-3.5 h-3.5 text-gray-400 dark:text-gray-500 transition-transform duration-200 ${userMenuOpen ? 'rotate-180' : ''}`}
+                      viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
                     >
-                      <path d="M6 9l6 6 6-9" />
+                      <path d="M6 9l6 6 6-6" />
                     </svg>
                   </button>
                   {userMenuOpen && (
-                    <div className="absolute right-0 top-full mt-1 bg-white border rounded-lg shadow-lg py-1 min-w-[120px]">
+                    <div className="absolute right-0 top-full mt-2 glass-modal py-1.5 min-w-[140px] animate-scale-in">
                       {userMenuItems.map((item, index) => (
                         <button
                           key={index}
@@ -195,7 +215,7 @@ function App() {
                             setUserMenuOpen(false)
                             if (item.action) item.action()
                           }}
-                          className="block w-full px-4 py-2 text-sm text-left transition-colors hover:bg-gray-50"
+                          className="block w-full px-4 py-2 text-sm text-left transition-colors text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700/50 hover:text-gray-900 dark:hover:text-gray-200"
                         >
                           {item.to ? (
                             <NavLink to={item.to} className="block">
@@ -213,102 +233,120 @@ function App() {
                 <NavLink
                   to="/login"
                   state={{ from: location.pathname }}
-                  className="px-3 py-1 bg-brand-500 text-white rounded hover:bg-brand-600"
+                  className="ml-3 px-4 py-1.5 btn-primary text-sm"
                 >
                   {t('nav.login')}
                 </NavLink>
               )}
             </nav>
 
-            {/* Mobile Menu Button */}
-            <button
-              className="md:hidden p-2 rounded hover:bg-gray-100"
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              aria-label="Toggle menu"
-            >
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                {mobileMenuOpen ? (
-                  <path d="M6 18L18 6M6 6l12 12" />
-                ) : (
-                  <><path d="M3 12h18" /><path d="M3 6h18" /><path d="M3 18h18" /></>
-                )}
-              </svg>
-            </button>
+            <div className="flex items-center gap-2 md:hidden">
+              <button
+                onClick={() => setSearchOpen(true)}
+                className="p-2 rounded-lg text-gray-500 dark:text-gray-400 hover:bg-gray-100/80 dark:hover:bg-gray-700/50"
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+              </button>
+              <button
+                className="p-2 rounded-lg text-gray-600 dark:text-gray-400 hover:bg-gray-100/80 dark:hover:bg-gray-700/50"
+                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                aria-label="Toggle menu"
+              >
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  {mobileMenuOpen ? (
+                    <path d="M6 18L18 6M6 6l12 12" />
+                  ) : (
+                    <><path d="M3 12h18" /><path d="M3 6h18" /><path d="M3 18h18" /></>
+                  )}
+                </svg>
+              </button>
+            </div>
           </div>
 
-          {/* Mobile Navigation */}
           {mobileMenuOpen && (
-            <nav className="md:hidden border-t bg-white px-4 py-2 space-y-1">
-              {navLinks.map(link => (
-                <NavLink
-                  key={link.to}
-                  to={link.to}
-                  end={link.to === '/'}
-                  className={({isActive}) => `block px-3 py-2 rounded text-sm transition-colors ${isActive ? 'bg-brand-100 text-brand-700' : 'hover:bg-gray-100'}`}
-                  onClick={() => setMobileMenuOpen(false)}
-                >
-                  {link.label}
-                </NavLink>
-              ))}
-              <div className="border-t mt-2 pt-2">
-                <button
-                  className={`w-full flex items-center justify-between px-3 py-2 rounded text-sm transition-colors ${mobileMoreMenuOpen ? 'bg-gray-100' : 'hover:bg-gray-100'}`}
-                  onClick={() => setMobileMoreMenuOpen(!mobileMoreMenuOpen)}
-                >
-                  {t('nav.more')}
-                  <svg
-                    className={`w-4 h-4 text-gray-500 transition-transform ${mobileMoreMenuOpen ? 'rotate-180' : ''}`}
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                  >
-                    <path d="M6 9l6 6 6-9" />
-                  </svg>
-                </button>
-                {mobileMoreMenuOpen && (
-                  <div className="pl-4 mt-1 space-y-1">
-                    {moreItems.map(item => (
-                      <NavLink
-                        key={item.to}
-                        to={item.to}
-                        onClick={() => {
-                          setMobileMoreMenuOpen(false)
-                          setMobileMenuOpen(false)
-                        }}
-                        className={({isActive}) => `block px-3 py-2 rounded text-sm transition-colors ${isActive ? 'bg-brand-100 text-brand-700' : 'hover:bg-gray-100'}`}
-                      >
-                        {item.label}
-                      </NavLink>
-                    ))}
-                  </div>
-                )}
-              </div>
-              {isAuthenticated ? (
-                <div className="border-t mt-2 pt-2">
+            <>
+              <div className="fixed inset-0 z-40 bg-black/20 dark:bg-black/40 backdrop-blur-sm md:hidden" onClick={() => setMobileMenuOpen(false)} />
+              <nav className="fixed right-0 top-0 bottom-0 z-50 w-72 bg-white/95 dark:bg-gray-900/95 backdrop-blur-2xl shadow-elevated md:hidden animate-slide-in-right overflow-y-auto">
+                <div className="p-4 flex items-center justify-between border-b border-gray-200/60 dark:border-gray-700/50">
+                  <span className="text-sm font-semibold text-gradient">SmileX Dict</span>
                   <button
-                    className={`w-full flex items-center justify-between px-3 py-2 rounded text-sm transition-colors ${mobileUserMenuOpen ? 'bg-gray-100' : 'hover:bg-gray-100'}`}
-                    onClick={() => setMobileUserMenuOpen(!mobileUserMenuOpen)}
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="p-1.5 rounded-lg text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700/50"
                   >
-                    <div className="flex items-center gap-2">
-                      <svg className="w-5 h-5 text-gray-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-                        <circle cx="12" cy="7" r="4" />
-                      </svg>
-                      <span className="text-sm text-gray-600">{user?.username}</span>
-                    </div>
-                    <svg
-                      className={`w-4 h-4 text-gray-500 transition-transform ${mobileUserMenuOpen ? 'rotate-180' : ''}`}
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M6 18L18 6M6 6l12 12" /></svg>
+                  </button>
+                </div>
+                <div className="p-3 space-y-0.5">
+                  {navLinks.map(link => (
+                    <NavLink
+                      key={link.to}
+                      to={link.to}
+                      end={link.to === '/'}
+                      className={({isActive}) =>
+                        `block px-4 py-2.5 rounded-xl text-sm transition-all duration-200 ${
+                          isActive
+                            ? 'bg-brand-500/10 dark:bg-brand-400/15 text-brand-600 dark:text-brand-400 font-medium'
+                            : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100/80 dark:hover:bg-gray-700/50'
+                        }`
+                      }
+                      onClick={() => setMobileMenuOpen(false)}
                     >
-                      <path d="M6 9l6 6 6-9" />
+                      {link.label}
+                    </NavLink>
+                  ))}
+                </div>
+                <div className="mx-3 border-t border-gray-200/60 dark:border-gray-700/50" />
+                <div className="p-3 space-y-0.5">
+                  <button
+                    className={`w-full flex items-center justify-between px-4 py-2.5 rounded-xl text-sm transition-all duration-200 ${
+                      mobileMoreMenuOpen
+                        ? 'bg-gray-100 dark:bg-gray-700/70 text-gray-900 dark:text-gray-200'
+                        : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100/80 dark:hover:bg-gray-700/50'
+                    }`}
+                    onClick={() => setMobileMoreMenuOpen(!mobileMoreMenuOpen)}
+                  >
+                    {t('nav.more')}
+                    <svg
+                      className={`w-3.5 h-3.5 transition-transform duration-200 ${mobileMoreMenuOpen ? 'rotate-180' : ''}`}
+                      viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+                    >
+                      <path d="M6 9l6 6 6-6" />
                     </svg>
                   </button>
-                  {mobileUserMenuOpen && (
-                    <div className="pl-4 mt-1 space-y-1">
+                  {mobileMoreMenuOpen && (
+                    <div className="pl-3 space-y-0.5 animate-slide-down">
+                      {moreItems.map(item => (
+                        <NavLink
+                          key={item.to}
+                          to={item.to}
+                          onClick={() => {
+                            setMobileMoreMenuOpen(false)
+                            setMobileMenuOpen(false)
+                          }}
+                          className={({isActive}) =>
+                            `block px-4 py-2 rounded-xl text-sm transition-all duration-200 ${
+                              isActive
+                                ? 'bg-brand-500/10 dark:bg-brand-400/15 text-brand-600 dark:text-brand-400'
+                                : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100/80 dark:hover:bg-gray-700/50'
+                            }`
+                          }
+                        >
+                          {item.label}
+                        </NavLink>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                {isAuthenticated ? (
+                  <>
+                    <div className="mx-3 border-t border-gray-200/60 dark:border-gray-700/50" />
+                    <div className="p-3 space-y-0.5">
+                      <div className="flex items-center gap-3 px-4 py-2.5">
+                        <div className="w-8 h-8 rounded-full bg-gradient-brand flex items-center justify-center text-white text-sm font-bold ring-2 ring-brand-500/20">
+                          {user?.username?.[0]?.toUpperCase() || 'U'}
+                        </div>
+                        <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{user?.username}</span>
+                      </div>
                       {userMenuItems.map((item, index) => (
                         <button
                           key={index}
@@ -317,7 +355,7 @@ function App() {
                             setMobileMenuOpen(false)
                             if (item.action) item.action()
                           }}
-                          className="block w-full px-3 py-2 text-left text-sm transition-colors hover:bg-gray-100 rounded"
+                          className="block w-full px-4 py-2.5 text-left text-sm rounded-xl transition-all duration-200 text-gray-600 dark:text-gray-400 hover:bg-gray-100/80 dark:hover:bg-gray-700/50 hover:text-gray-900 dark:hover:text-gray-200"
                         >
                           {item.to ? (
                             <NavLink to={item.to} className="block">
@@ -329,22 +367,27 @@ function App() {
                         </button>
                       ))}
                     </div>
-                  )}
-                </div>
-              ) : (
-                <NavLink
-                  to="/login"
-                  state={{ from: location.pathname }}
-                  className="block px-3 py-2 mt-2 pt-2 border-t text-center bg-brand-500 text-white rounded"
-                  onClick={() => setMobileMenuOpen(false)}
-                >
-                  {t('nav.login')}
-                </NavLink>
-              )}
-            </nav>
+                  </>
+                ) : (
+                  <>
+                    <div className="mx-3 border-t border-gray-200/60 dark:border-gray-700/50" />
+                    <div className="p-3">
+                      <NavLink
+                        to="/login"
+                        state={{ from: location.pathname }}
+                        className="block px-4 py-2.5 text-center btn-primary text-sm"
+                        onClick={() => setMobileMenuOpen(false)}
+                      >
+                        {t('nav.login')}
+                      </NavLink>
+                    </div>
+                  </>
+                )}
+              </nav>
+            </>
           )}
         </header>
-        <main className="max-w-5xl mx-auto px-4 py-6">
+        <main className="max-w-5xl mx-auto px-4 sm:px-6 py-6">
           <ErrorBoundary>
             <Routes>
               <Route path="/" element={<Home />} />

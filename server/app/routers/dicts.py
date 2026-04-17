@@ -13,9 +13,17 @@ router = APIRouter()
 
 @router.get("", response_model=List[DictItem])
 def list_dicts(
-    current_user: UserModel = Depends(get_current_user), db: Session = Depends(get_db)
+    current_user: UserModel = Depends(get_current_user),
+    db: Session = Depends(get_db),
 ):
-    return dict_service.list_dicts(db, current_user.id)
+    return dict_service.list_all_dicts(db, current_user.id)
+
+
+@router.get("/official", response_model=List[DictItem])
+def list_official_dicts(
+    db: Session = Depends(get_db),
+):
+    return dict_service.list_official_dicts(db)
 
 
 @router.post("", response_model=DictItem)
