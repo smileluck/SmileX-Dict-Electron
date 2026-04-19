@@ -230,9 +230,9 @@ export default function Login() {
 
         <p className="mt-4 text-center text-xs text-gray-500 dark:text-gray-400">
           {tab === 'login' ? (
-            <>{t('login.noAccount')}<button className="text-brand-500 dark:text-brand-400 hover:underline" onClick={() => setTab('register')}>{t('login.registerNow')}</button></>
+            <>{t('login.noAccount')} <button className="text-brand-500 dark:text-brand-400 hover:underline" onClick={() => setTab('register')}>{t('login.registerNow')}</button></>
           ) : (
-            <>{t('login.hasAccount')}<button className="text-brand-500 dark:text-brand-400 hover:underline" onClick={() => setTab('login')}>{t('login.goLogin')}</button></>
+            <>{t('login.hasAccount')} <button className="text-brand-500 dark:text-brand-400 hover:underline" onClick={() => setTab('login')}>{t('login.goLogin')}</button></>
           )}
         </p>
       </div>

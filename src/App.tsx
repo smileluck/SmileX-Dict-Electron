@@ -123,7 +123,7 @@ function App() {
           <div className="max-w-5xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between">
             <div className="flex items-center gap-2.5">
               <div className="w-8 h-8 rounded-xl bg-gradient-brand flex items-center justify-center shadow-glow">
-                <img src="/smilex.svg" alt="SmileX" className="w-5 h-5 brightness-0 invert" />
+                <img src="/smilex.svg" alt="SmileX" className="w-5 h-5" />
               </div>
               <h1 className="text-lg font-bold text-gradient hidden sm:block">SmileX Dict</h1>
             </div>
@@ -416,13 +416,19 @@ function App() {
 
         <nav className="md:hidden fixed bottom-0 left-0 right-0 z-30 bg-white/90 dark:bg-gray-900/90 backdrop-blur-2xl border-t border-gray-200/50 dark:border-gray-700/50 safe-area-bottom">
           <div className="flex items-center justify-around py-2">
-            {[
+            {(isAuthenticated ? [
               { to: '/', icon: 'M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6', label: t('nav.home') },
               { to: '/dicts', icon: 'M4 6h12a4 4 0 0 1 4 4v8H8a4 4 0 0 1-4-4V6zM8 6v12', label: t('nav.dicts') },
               { to: '/practice/words', icon: 'M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z', label: t('nav.home') === '主页' ? '练习' : 'Practice' },
               { to: '/panel', icon: 'M12 20V10M18 20V4M6 20v-4', label: t('nav.panel') },
               { to: '/settings', icon: 'M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z M15 12a3 3 0 11-6 0 3 3 0 016 0z', label: t('nav.settings') },
-            ].map(item => (
+            ] : [
+              { to: '/', icon: 'M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6', label: t('nav.home') },
+              { to: '/dicts', icon: 'M4 6h12a4 4 0 0 1 4 4v8H8a4 4 0 0 1-4-4V6zM8 6v12', label: t('nav.dicts') },
+              { to: '/library', icon: 'M4 4h12a4 4 0 0 1 4 4v12H8a4 4 0 0 1-4-4V4zM8 4v12', label: t('nav.library') },
+              { to: '/about', icon: 'M12 16v-4M12 8h.01M22 12c0 5.523-4.477 10-10 10S2 17.523 2 12 6.477 2 12 2s10 4.477 10 10z', label: t('nav.about') },
+              { to: '/login', icon: 'M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 7l3 3-3 3m4-3H2', label: t('nav.login') },
+            ]).map(item => (
               <NavLink
                 key={item.to}
                 to={item.to}

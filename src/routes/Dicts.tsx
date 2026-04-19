@@ -203,7 +203,7 @@ export default function Dicts() {
           </div>
           <div className="flex-1">
             <p className="text-sm text-amber-800 dark:text-amber-200">
-              {t('dicts.guestWarning')}
+              <span dangerouslySetInnerHTML={{ __html: t('dicts.guestWarning') }} />
               <span className="text-amber-900 dark:text-amber-100 font-medium cursor-pointer hover:underline ml-1" onClick={() => navigate('/login')}>{t('dicts.loginNow')}</span>
             </p>
           </div>
@@ -213,14 +213,14 @@ export default function Dicts() {
       <div className="glass-card p-4">
         <div className="flex items-center gap-3 flex-wrap">
           <button
-            className="btn-primary flex items-center gap-1.5"
+            className="px-4 py-2 bg-gradient-brand text-white rounded-xl font-medium text-sm flex items-center gap-1.5 transition-all duration-300 hover:shadow-lg hover:shadow-brand-500/25 hover:-translate-y-0.5"
             onClick={() => setShowLookup(true)}
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8" /><path d="M21 21l-4.35-4.35" /></svg>
             {t('dicts.onlineLookup')}
           </button>
           <button
-            className="btn-secondary flex items-center gap-1.5"
+            className="px-4 py-2 bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-xl font-medium text-sm flex items-center gap-1.5 transition-all duration-300 hover:shadow-lg hover:shadow-green-500/25 hover:-translate-y-0.5"
             onClick={() => setShowImport(true)}
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" /><polyline points="17 8 12 3 7 8" /><line x1="12" y1="3" x2="12" y2="15" /></svg>
