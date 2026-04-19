@@ -1,8 +1,8 @@
 import { useState } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
-import { useDispatch } from 'react-redux'
 import { useTranslation } from 'react-i18next'
 import { setAuth, loadUserDicts } from '../features/auth/authSlice'
+import { useAppDispatch } from '../hooks/useAppDispatch'
 import { authApi } from '../services/api'
 import { useToast } from '../components/Toast'
 
@@ -14,7 +14,7 @@ export default function Login() {
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
-  const dispatch = useDispatch()
+  const dispatch = useAppDispatch()
   const navigate = useNavigate()
   const location = useLocation()
   const { showToast } = useToast()

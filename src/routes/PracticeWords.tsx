@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next'
 import { reviewWord, toggleCollect, markWrong } from '../features/words/wordsSlice'
 import Icon from '../components/Icon'
 import SpeakButton from '../components/SpeakButton'
-import { statsApi } from '../services/api'
+import { statsApi, learningApi } from '../services/api'
 import { getLearningQueue, getFatigueWarning, getLearningSuggestion } from '../utils/priorityQueue'
 
 type Mode = 'type' | 'confirm'
@@ -15,7 +15,6 @@ export default function PracticeWords() {
   const dispatch = useDispatch()
   const words = useSelector((s: RootState) => s.words.items)
   const dicts = useSelector((s: RootState) => s.dicts)
-  const settings = useSelector((s: RootState) => s.settings.settings)
   const [mode, setMode] = useState<Mode>('type')
   const [selectedDictId, setSelectedDictId] = useState<string | undefined>(dicts.activeId)
   const responseTimeRef = useRef(performance.now())
@@ -138,6 +137,7 @@ export default function PracticeWords() {
       responseTime,
       learningContext: 'typing'
     }))
+    learningApi.reviewWord(current.id, quality, responseTime, 'typing').catch(() => {})
     sendEvent('dictation')
 
     if (wasNew && ok) {
@@ -157,6 +157,7 @@ export default function PracticeWords() {
     const quality = ok ? 4 : 2
 
     dispatch(reviewWord({ wordId: current.id, quality }))
+    learningApi.reviewWord(current.id, quality, undefined, 'recall').catch(() => {})
     sendEvent('review')
 
     if (wasNew && ok) {
@@ -235,7 +236,7 @@ export default function PracticeWords() {
         </div>
 
         <div className="glass-card p-8 text-center">
-          <div className="text-gray-400 dark:text-gray-500 text-4xl mb-3">📚</div>
+          <Icon name="book-open" size={40} className="mx-auto mb-3 text-gray-300 dark:text-gray-600" />
           <div className="text-gray-500 dark:text-gray-400 mb-2">{t('practice.noWordsTitle')}</div>
           <div className="text-sm text-gray-400 dark:text-gray-500">{t('practice.noWordsHint')}</div>
         </div>
@@ -245,6 +246,12 @@ export default function PracticeWords() {
 
   return (
     <div className="space-y-4 page-enter">
+      <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5 overflow-hidden">
+        <div
+          className="bg-gradient-brand rounded-full h-1.5 transition-all duration-500 ease-out"
+          style={{ width: `${queue.length > 0 ? ((index + 1) / queue.length) * 100 : 0}%` }}
+        />
+      </div>
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <div className="flex-1 min-w-[200px]">
           <select

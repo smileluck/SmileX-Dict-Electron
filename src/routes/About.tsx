@@ -63,7 +63,7 @@ export default function About() {
       </div>
 
       <div className="glass-card p-6">
-        <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-3">Tech Stack</h3>
+        <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-3">{t('about.techStack')}</h3>
         <div className="flex flex-wrap gap-2">
           {['React 19', 'Redux Toolkit', 'Tailwind CSS', 'React Router', 'Vite', 'Electron', 'Capacitor', 'FastAPI'].map(tech => (
             <span key={tech} className="badge bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400">{tech}</span>

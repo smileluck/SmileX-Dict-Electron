@@ -1,5 +1,6 @@
 import { createSlice } from '@reduxjs/toolkit'
 import type { PayloadAction } from '@reduxjs/toolkit'
+import type { LearningProgress } from '../../services/api'
 
 export type WordStatus = 'new' | 'wrong' | 'mastered' | 'collected'
 
@@ -47,6 +48,30 @@ const wordsSlice = createSlice({
   name: 'words',
   initialState,
   reducers: {
+    setWords(state, action: PayloadAction<WordItem[]>) {
+      state.items = action.payload
+    },
+    mergeProgress(state, action: PayloadAction<LearningProgress[]>) {
+      for (const p of action.payload) {
+        const w = state.items.find(i => i.id === p.word_id)
+        if (w) {
+          w.status = (p.status as WordStatus) || w.status
+          w.efactor = p.efactor ?? w.efactor
+          w.interval = p.interval ?? w.interval
+          w.nextReviewDate = p.next_review_date ?? w.nextReviewDate
+          w.lastReviewDate = p.last_review_date ?? w.lastReviewDate
+          w.repetitions = p.repetitions ?? w.repetitions
+          w.difficulty = p.difficulty ?? w.difficulty
+          w.importance = p.importance ?? w.importance
+          w.learningStreak = p.learning_streak ?? w.learningStreak
+          w.averageQuality = p.average_quality ?? w.averageQuality
+          w.lastResponseQuality = p.last_response_quality ?? w.lastResponseQuality
+          w.fatigueFactor = p.fatigue_factor ?? w.fatigueFactor
+          w.responseTime = p.response_time ?? w.responseTime
+          w.contextualReviews = p.contextual_reviews ?? w.contextualReviews
+        }
+      }
+    },
     markWrong(state, action: PayloadAction<string>) {
       const w = state.items.find(i => i.id === action.payload)
       if (w) w.status = 'wrong'
@@ -152,7 +177,7 @@ const wordsSlice = createSlice({
         }
         
         // 基于难度的记忆因子调整范围
-        let efactorMin = 1.3
+        const efactorMin = 1.3
         let efactorMax = 2.5
         if (word.difficulty >= 4) {
           efactorMax = 2.2 // 高难度单词记忆因子调整范围更小
@@ -213,5 +238,5 @@ const wordsSlice = createSlice({
   },
 })
 
-export const { markWrong, markMastered, toggleCollect, incrementReview, addWord, reviewWord } = wordsSlice.actions
+export const { markWrong, markMastered, toggleCollect, incrementReview, addWord, reviewWord, setWords, mergeProgress } = wordsSlice.actions
 export default wordsSlice.reducer

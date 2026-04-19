@@ -244,11 +244,13 @@ export const articlesApi = {
 }
 
 // Dicts API
+export type DictSource = 'system' | 'custom' | 'special'
+
 export interface DictItem {
   id: string
   name: string
   wordCount: number
-  source: string
+  source: DictSource
 }
 
 export const dictsApi = {
@@ -342,6 +344,40 @@ export interface QuickImportResult {
   skipped: number
   total: number
   detail: string
+}
+
+// Learning Progress API
+export interface LearningProgress {
+  id: string
+  user_id: string
+  word_id: string
+  status: string
+  efactor: number
+  interval: number
+  next_review_date: string | null
+  last_review_date: string | null
+  repetitions: number
+  difficulty: number
+  importance: number
+  category: string
+  learning_streak: number
+  average_quality: number
+  last_response_quality: number
+  fatigue_factor: number
+  response_time: number
+  contextual_reviews: number
+}
+
+export const learningApi = {
+  getAllProgress: () => request<LearningProgress[]>('/api/learning/progress'),
+  getWordProgress: (wordId: string) => request<LearningProgress>(`/api/learning/progress/${wordId}`),
+  reviewWord: (wordId: string, quality: number, responseTime?: number, learningContext?: string) =>
+    request<LearningProgress>(`/api/learning/review/${wordId}`, {
+      method: 'POST',
+      body: { quality, response_time: responseTime, learning_context: learningContext || 'recall' },
+    }),
+  batchUpdate: (items: Record<string, unknown>[]) =>
+    request<LearningProgress[]>('/api/learning/batch-update', { method: 'POST', body: items }),
 }
 
 export const importApi = {

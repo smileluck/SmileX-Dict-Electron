@@ -1,6 +1,6 @@
 import { useSelector, useDispatch } from 'react-redux'
 import type { RootState } from '../store'
-import { setActive, updateSpecialCounts, setDicts } from '../features/dicts/dictsSlice'
+import { setActive, updateSpecialCounts, setDicts, removeDict } from '../features/dicts/dictsSlice'
 import { useEffect, useState, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Icon from '../components/Icon'
@@ -34,6 +34,7 @@ export default function Dicts() {
   const [importMode, setImportMode] = useState<'quick' | 'batch'>('quick')
   const [selectedDictForImport, setSelectedDictForImport] = useState<string>('')
   const [showImport, setShowImport] = useState(false)
+  const [deleteDictId, setDeleteDictId] = useState<string | null>(null)
 
   useEffect(() => {
     const collected = words.filter(w => w.status === 'collected').length
@@ -233,12 +234,34 @@ export default function Dicts() {
           <span className="text-blue-600 dark:text-blue-400">{active ? t('dicts.currentDict') : t('dicts.noCurrentDict')}</span>
           {active && <span className="font-semibold text-gray-900 dark:text-gray-100">{active.name}</span>}
         </div>
-        <div className="mt-3 grid grid-cols-4 gap-2 text-center">
-          <div className="rounded-xl border border-gray-200/60 dark:border-gray-700/40 bg-gray-50/80 dark:bg-gray-700/30 p-2"><div className="text-xl text-gray-900 dark:text-gray-100">0</div><div className="text-xs text-gray-500 dark:text-gray-400">{t('dicts.newWords')}</div></div>
-          <div className="rounded-xl border border-gray-200/60 dark:border-gray-700/40 bg-gray-50/80 dark:bg-gray-700/30 p-2"><div className="text-xl text-gray-900 dark:text-gray-100">0</div><div className="text-xs text-gray-500 dark:text-gray-400">{t('dicts.reviewCount')}</div></div>
-          <div className="rounded-xl border border-gray-200/60 dark:border-gray-700/40 bg-gray-50/80 dark:bg-gray-700/30 p-2"><div className="text-xl text-gray-900 dark:text-gray-100">0</div><div className="text-xs text-gray-500 dark:text-gray-400">{t('dicts.dictationCount')}</div></div>
-          <button className="rounded-xl bg-brand-500 dark:bg-brand-600 text-white p-2 hover:bg-brand-600 dark:hover:bg-brand-700 transition-colors" onClick={() => { if (active) navigate('/practice/words') }}>{t('dicts.startLearning')}</button>
-        </div>
+        {(() => {
+          const today = new Date().toISOString().split('T')[0]
+          const filteredWords = active
+            ? (['collected','wrong','mastered'].includes(active.id)
+              ? words.filter(w => w.status === active.id)
+              : words.filter(w => w.dictId === active.id))
+            : words
+          const newCount = filteredWords.filter(w => w.status === 'new').length
+          const reviewCount = filteredWords.filter(w => w.nextReviewDate?.split('T')[0] <= today && w.status !== 'mastered' && w.status !== 'new').length
+          const masteredCount = filteredWords.filter(w => w.status === 'mastered').length
+          return (
+            <div className="mt-3 grid grid-cols-4 gap-2 text-center">
+              <div className="rounded-xl border border-gray-200/60 dark:border-gray-700/40 bg-gray-50/80 dark:bg-gray-700/40 p-2">
+                <div className="text-xl font-semibold text-brand-600 dark:text-brand-400">{newCount}</div>
+                <div className="text-xs text-gray-500 dark:text-gray-400">{t('dicts.newWords')}</div>
+              </div>
+              <div className="rounded-xl border border-gray-200/60 dark:border-gray-700/40 bg-gray-50/80 dark:bg-gray-700/40 p-2">
+                <div className="text-xl font-semibold text-green-600 dark:text-green-400">{reviewCount}</div>
+                <div className="text-xs text-gray-500 dark:text-gray-400">{t('dicts.reviewCount')}</div>
+              </div>
+              <div className="rounded-xl border border-gray-200/60 dark:border-gray-700/40 bg-gray-50/80 dark:bg-gray-700/40 p-2">
+                <div className="text-xl font-semibold text-purple-600 dark:text-purple-400">{masteredCount}</div>
+                <div className="text-xs text-gray-500 dark:text-gray-400">{t('dicts.dictationCount')}</div>
+              </div>
+              <button className="rounded-xl bg-brand-500 dark:bg-brand-600 text-white p-2 hover:bg-brand-600 dark:hover:bg-brand-700 transition-colors font-medium text-sm" onClick={() => { if (active) navigate('/practice/words') }}>{t('dicts.startLearning')}</button>
+            </div>
+          )
+        })()}
       </div>
 
       <div className="glass-card p-4">
@@ -294,6 +317,7 @@ export default function Dicts() {
                   <>
                     <button className="px-2 py-1 border border-gray-200 dark:border-gray-700 rounded-lg text-xs hover:bg-gray-50 dark:hover:bg-gray-700/50" onClick={() => dispatch(setActive(d.id))}>{t('dicts.setCurrent')}</button>
                     <button className="px-2 py-1 border border-gray-200 dark:border-gray-700 rounded-lg text-xs hover:bg-gray-50 dark:hover:bg-gray-700/50" onClick={() => { setSelectedDictForImport(d.id); setShowImport(true) }}>{t('dicts.import')}</button>
+                    <button className="px-2 py-1 border border-red-200 dark:border-red-800 rounded-lg text-xs text-red-500 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20" onClick={() => setDeleteDictId(d.id)}>{t('common.delete')}</button>
                   </>
                 )}
               </div>
@@ -327,7 +351,7 @@ export default function Dicts() {
           <div className="glass-modal animate-scale-in max-w-lg p-5 mx-4 max-h-[85vh] overflow-auto" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">{t('dicts.lookupTitle')}</h3>
-              <button type="button" className="btn-secondary px-2 py-1 text-xs cursor-pointer" onClick={() => { setShowLookup(false); setLookupResult(null); setLookupQuery('') }}>关闭</button>
+              <button type="button" className="btn-secondary px-2 py-1 text-xs cursor-pointer" onClick={() => { setShowLookup(false); setLookupResult(null); setLookupQuery('') }}>{t('common.close')}</button>
             </div>
 
             <div className="flex gap-2 mb-4">
@@ -438,7 +462,7 @@ export default function Dicts() {
           <div className="glass-modal animate-scale-in max-w-lg p-5 mx-4" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">{t('dicts.importTitle')}</h3>
-              <button type="button" className="btn-secondary px-2 py-1 text-xs cursor-pointer" onClick={() => setShowImport(false)}>关闭</button>
+              <button type="button" className="btn-secondary px-2 py-1 text-xs cursor-pointer" onClick={() => setShowImport(false)}>{t('common.close')}</button>
             </div>
 
             {!isAuthenticated ? (
@@ -556,7 +580,7 @@ export default function Dicts() {
           <div className="glass-modal animate-scale-in max-w-lg p-5 mx-4" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-2">
               <div className="font-semibold text-gray-900 dark:text-gray-100">{t('dicts.list')}</div>
-              <button type="button" className="btn-secondary px-2 py-1 text-xs cursor-pointer" onClick={() => setViewId(undefined)}>关闭</button>
+              <button type="button" className="btn-secondary px-2 py-1 text-xs cursor-pointer" onClick={() => setViewId(undefined)}>{t('common.close')}</button>
             </div>
             <ul className="max-h-96 overflow-auto space-y-2">
               {itemsByDict(viewId).map(w => (
@@ -586,7 +610,7 @@ export default function Dicts() {
                   <div className="text-xl font-semibold text-gray-900 dark:text-gray-100">{current.term}</div>
                   <div className="text-gray-600 dark:text-gray-400">{current.meaning}</div>
                   <div className="mt-4 flex gap-2">
-                    <button type="button" className="btn-primary px-3 py-2" onClick={() => setReviewIndex(i => Math.min(i + 1, reviewIds.length - 1))}>{t('dicts.nextEntry')}</button>
+                    <button type="button" className="btn-primary px-3 py-2" onClick={() => setReviewIndex(i => Math.min(i + 1, reviewIds.length - 1))}>{t('common.next')}</button>
                   </div>
                 </div>
               )
@@ -594,6 +618,31 @@ export default function Dicts() {
           </div>
         </div>
       )}
+      {deleteDictId && (() => {
+        const d = dicts.mine.find(d => d.id === deleteDictId)
+        if (!d) return null
+        return (
+          <div className="glass-modal-overlay" onClick={() => setDeleteDictId(null)}>
+            <div className="glass-modal animate-scale-in max-w-sm p-5 mx-4" onClick={e => e.stopPropagation()}>
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">{t('wordList.deleteConfirm')}</h3>
+              <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">{t('wordList.deleteDictConfirm', { name: d.name })}</p>
+              <div className="flex gap-2 justify-end">
+                <button className="btn-secondary px-4 py-2 text-sm" onClick={() => setDeleteDictId(null)}>{t('common.cancel')}</button>
+                <button className="px-4 py-2 text-sm bg-red-500 text-white rounded-xl font-medium hover:bg-red-600 transition-colors" onClick={async () => {
+                  try {
+                    await dictsApi.delete(deleteDictId)
+                    dispatch(removeDict(deleteDictId))
+                    showToast(t('wordList.deleteSuccess'), 'success')
+                  } catch {
+                    showToast(t('common.error'), 'error')
+                  }
+                  setDeleteDictId(null)
+                }}>{t('common.delete')}</button>
+              </div>
+            </div>
+          </div>
+        )
+      })()}
     </>
   )
 }

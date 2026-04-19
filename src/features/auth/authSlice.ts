@@ -3,7 +3,7 @@ import type { PayloadAction } from '@reduxjs/toolkit'
 import type { RootState } from '../../store'
 import type { AuthUser } from '../../services/api'
 import { authApi, dictsApi } from '../../services/api'
-import type { DictItem } from '../dicts/dictsSlice'
+import type { DictItem, DictSource } from '../dicts/dictsSlice'
 
 export const fetchCurrentUser = createAsyncThunk<
   AuthUser,
@@ -32,7 +32,7 @@ export const loadUserDicts = createAsyncThunk<
     // 合并本地特殊词典和服务器词典
     const specialIds = ['collected', 'wrong', 'mastered']
     const allDicts = [
-      ...specialIds.map(id => ({ id, name: '', wordCount: 0, source: 'special' })),
+      ...specialIds.map(id => ({ id, name: '', wordCount: 0, source: 'special' as DictSource })),
       ...serverDicts
     ]
     return allDicts
@@ -102,7 +102,7 @@ const authSlice = createSlice({
       const serverDicts = action.payload.filter(d => !specialIds.includes(d.id))
       state.mine = [...specialDicts, ...serverDicts]
     })
-    builder.addCase(loadUserDicts.rejected, (state, action) => {
+    builder.addCase(loadUserDicts.rejected, (_state, action) => {
       console.error('加载词典失败:', action.error)
     })
   },

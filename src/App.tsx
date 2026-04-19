@@ -1,7 +1,8 @@
 import { Routes, Route, NavLink, Navigate, useLocation } from 'react-router-dom'
 import { useState, useRef, useEffect } from 'react'
-import { useSelector, useDispatch } from 'react-redux'
+import { useSelector } from 'react-redux'
 import { useTranslation } from 'react-i18next'
+import { useAppDispatch } from './hooks/useAppDispatch'
 import Home from './routes/Home'
 import Dicts from './routes/Dicts'
 import Panel from './routes/Panel'
@@ -21,7 +22,8 @@ import ErrorBoundary from './components/ErrorBoundary'
 import { ToastProvider } from './components/Toast'
 import SearchDialog from './components/SearchDialog'
 import { fetchCurrentUser, loadUserDicts, logoutUser } from './features/auth/authSlice'
-import { hasToken } from './services/api'
+import { mergeProgress } from './features/words/wordsSlice'
+import { hasToken, learningApi } from './services/api'
 import type { RootState } from './store'
 import { useNavigate } from 'react-router-dom'
 
@@ -31,11 +33,10 @@ function App() {
   const [moreMenuOpen, setMoreMenuOpen] = useState(false)
   const [mobileMoreMenuOpen, setMobileMoreMenuOpen] = useState(false)
   const [userMenuOpen, setUserMenuOpen] = useState(false)
-  const [mobileUserMenuOpen, setMobileUserMenuOpen] = useState(false)
   const [searchOpen, setSearchOpen] = useState(false)
   const isAuthenticated = useSelector((state: RootState) => state.auth.isAuthenticated)
   const user = useSelector((state: RootState) => state.auth.user)
-  const dispatch = useDispatch()
+  const dispatch = useAppDispatch()
   const location = useLocation()
   const navigate = useNavigate()
   const moreMenuRef = useRef<HTMLDivElement>(null)
@@ -43,6 +44,11 @@ function App() {
   useEffect(() => {
     if (isAuthenticated) {
       dispatch(loadUserDicts())
+      learningApi.getAllProgress().then(progress => {
+        if (progress && progress.length > 0) {
+          dispatch(mergeProgress(progress))
+        }
+      }).catch(() => {})
     }
   }, [isAuthenticated, dispatch])
 
@@ -351,7 +357,6 @@ function App() {
                         <button
                           key={index}
                           onClick={() => {
-                            setMobileUserMenuOpen(false)
                             setMobileMenuOpen(false)
                             if (item.action) item.action()
                           }}
@@ -387,7 +392,7 @@ function App() {
             </>
           )}
         </header>
-        <main className="max-w-5xl mx-auto px-4 sm:px-6 py-6">
+        <main className="max-w-5xl mx-auto px-4 sm:px-6 py-6 pb-24 md:pb-6">
           <ErrorBoundary>
             <Routes>
               <Route path="/" element={<Home />} />
@@ -408,6 +413,34 @@ function App() {
             </Routes>
           </ErrorBoundary>
         </main>
+
+        <nav className="md:hidden fixed bottom-0 left-0 right-0 z-30 bg-white/90 dark:bg-gray-900/90 backdrop-blur-2xl border-t border-gray-200/50 dark:border-gray-700/50 safe-area-bottom">
+          <div className="flex items-center justify-around py-2">
+            {[
+              { to: '/', icon: 'M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6', label: t('nav.home') },
+              { to: '/dicts', icon: 'M4 6h12a4 4 0 0 1 4 4v8H8a4 4 0 0 1-4-4V6zM8 6v12', label: t('nav.dicts') },
+              { to: '/practice/words', icon: 'M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z', label: t('nav.home') === '主页' ? '练习' : 'Practice' },
+              { to: '/panel', icon: 'M12 20V10M18 20V4M6 20v-4', label: t('nav.panel') },
+              { to: '/settings', icon: 'M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z M15 12a3 3 0 11-6 0 3 3 0 016 0z', label: t('nav.settings') },
+            ].map(item => (
+              <NavLink
+                key={item.to}
+                to={item.to}
+                end={item.to === '/'}
+                className={({isActive}) =>
+                  `flex flex-col items-center gap-0.5 px-2 py-1 rounded-lg transition-colors ${
+                    isActive
+                      ? 'text-brand-600 dark:text-brand-400'
+                      : 'text-gray-400 dark:text-gray-500'
+                  }`
+                }
+              >
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d={item.icon}/></svg>
+                <span className="text-[10px]">{item.label}</span>
+              </NavLink>
+            ))}
+          </div>
+        </nav>
       </div>
       <SearchDialog open={searchOpen} onClose={() => setSearchOpen(false)} />
     </ToastProvider>

@@ -1,27 +1,148 @@
 import { Link } from 'react-router-dom'
 import { useSelector } from 'react-redux'
 import { useTranslation } from 'react-i18next'
+import { useMemo } from 'react'
 import type { RootState } from '../store'
 
 export default function Home() {
   const { t } = useTranslation()
   const isAuthenticated = useSelector((s: RootState) => s.auth.isAuthenticated)
+  const words = useSelector((s: RootState) => s.words.items)
+  const signinDates = useSelector((s: RootState) => s.panel.signinDates)
+  const settings = useSelector((s: RootState) => s.settings.settings)
+
+  const today = new Date().toISOString().slice(0, 10)
+
+  const stats = useMemo(() => {
+    const total = words.length
+    const mastered = words.filter(w => w.status === 'mastered').length
+    const wrong = words.filter(w => w.status === 'wrong').length
+    const collected = words.filter(w => w.status === 'collected').length
+    const pending = words.filter(w => w.status !== 'mastered' && w.nextReviewDate?.split('T')[0] <= today).length
+    const newWords = words.filter(w => w.status === 'new').length
+    const masteryRate = total > 0 ? Math.round(mastered / total * 100) : 0
+    return { total, mastered, wrong, collected, pending, newWords, masteryRate }
+  }, [words, today])
+
+  const streak = useMemo(() => {
+    let count = 0
+    const sorted = [...signinDates].sort().reverse()
+    const d = new Date()
+    for (const date of sorted) {
+      const expected = d.toISOString().slice(0, 10)
+      if (date === expected) {
+        count++
+        d.setDate(d.getDate() - 1)
+      } else {
+        break
+      }
+    }
+    return count
+  }, [signinDates])
+
+  const dailyTarget = settings?.dailyNewWordTarget || 20
+
+  if (isAuthenticated) {
+    return (
+      <div className="space-y-6 page-enter">
+        <div className="glass-card p-5">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">{t('home.welcomeBack')}</h2>
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-gray-500 dark:text-gray-400">{t('home.dailyGoal')}</span>
+              <span className="text-sm font-semibold text-brand-600 dark:text-brand-400">{stats.newWords}/{dailyTarget}</span>
+            </div>
+          </div>
+          <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3 mb-4">
+            <div
+              className="bg-gradient-brand rounded-full h-3 transition-all duration-500"
+              style={{ width: `${Math.min((stats.newWords / dailyTarget) * 100, 100)}%` }}
+            />
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <Link to="/practice/words" className="rounded-xl bg-brand-50 dark:bg-brand-900/20 p-3 text-center hover:bg-brand-100 dark:hover:bg-brand-900/30 transition-colors group">
+              <div className="text-2xl font-bold text-brand-600 dark:text-brand-400">{stats.pending}</div>
+              <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">{t('home.pendingReview')}</div>
+            </Link>
+            <Link to="/mastered" className="rounded-xl bg-green-50 dark:bg-green-900/20 p-3 text-center hover:bg-green-100 dark:hover:bg-green-900/30 transition-colors">
+              <div className="text-2xl font-bold text-green-600 dark:text-green-400">{stats.mastered}</div>
+              <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">{t('home.mastered')}</div>
+            </Link>
+            <Link to="/wrong-words" className="rounded-xl bg-red-50 dark:bg-red-900/20 p-3 text-center hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors">
+              <div className="text-2xl font-bold text-red-600 dark:text-red-400">{stats.wrong}</div>
+              <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">{t('home.wrongWords')}</div>
+            </Link>
+            <Link to="/panel" className="rounded-xl bg-purple-50 dark:bg-purple-900/20 p-3 text-center hover:bg-purple-100 dark:hover:bg-purple-900/30 transition-colors">
+              <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">{streak}</div>
+              <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">{t('home.streak')}</div>
+            </Link>
+          </div>
+        </div>
+
+        <div className="grid md:grid-cols-3 gap-4">
+          <Link to="/practice/words" className="glass-card-hover p-5 flex items-center gap-3">
+            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-brand-400 to-brand-600 flex items-center justify-center text-white shadow-glow flex-shrink-0">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 6h12a4 4 0 0 1 4 4v8H8a4 4 0 0 1-4-4V6z"/><path d="M8 6v12"/></svg>
+            </div>
+            <div>
+              <div className="font-medium text-gray-900 dark:text-gray-100">{t('home.startPractice')}</div>
+              <div className="text-xs text-gray-500 dark:text-gray-400">{stats.pending} {t('home.wordsWaiting')}</div>
+            </div>
+          </Link>
+          <Link to="/practice/articles" className="glass-card-hover p-5 flex items-center gap-3">
+            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-green-400 to-green-600 flex items-center justify-center text-white shadow-sm flex-shrink-0">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+            </div>
+            <div>
+              <div className="font-medium text-gray-900 dark:text-gray-100">{t('home.articlePractice')}</div>
+              <div className="text-xs text-gray-500 dark:text-gray-400">{t('home.enterArticlePractice')}</div>
+            </div>
+          </Link>
+          <Link to="/collections" className="glass-card-hover p-5 flex items-center gap-3">
+            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center text-white shadow-sm flex-shrink-0">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 3l3.09 6.26L22 10l-5 4.87L18.18 21 12 17.77 5.82 21 7 14.87 2 10l6.91-0.74L12 3z"/></svg>
+            </div>
+            <div>
+              <div className="font-medium text-gray-900 dark:text-gray-100">{t('home.collections')}</div>
+              <div className="text-xs text-gray-500 dark:text-gray-400">{stats.collected} {t('home.wordsUnit')}</div>
+            </div>
+          </Link>
+        </div>
+
+        <div className="glass-card p-5">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="font-semibold text-gray-900 dark:text-gray-100">{t('home.masteryOverview')}</h3>
+            <span className="text-sm font-medium text-brand-600 dark:text-brand-400">{stats.masteryRate}%</span>
+          </div>
+          <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5">
+            <div
+              className="bg-gradient-brand rounded-full h-2.5 transition-all duration-500"
+              style={{ width: `${stats.masteryRate}%` }}
+            />
+          </div>
+          <div className="mt-3 flex justify-between text-xs text-gray-500 dark:text-gray-400">
+            <span>{t('home.totalVocab')}: {stats.total}</span>
+            <span>{t('home.mastered')}: {stats.mastered}</span>
+            <span>{t('home.wrong')}: {stats.wrong}</span>
+          </div>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-6 page-enter">
-      {!isAuthenticated && (
-        <div className="rounded-2xl bg-amber-50/80 dark:bg-amber-900/20 border border-amber-200/60 dark:border-amber-700/40 p-4 flex items-center gap-3 backdrop-blur-sm">
-          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-amber-400 to-amber-500 flex items-center justify-center text-white flex-shrink-0 shadow-sm">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
-          </div>
-          <div className="flex-1">
-            <p className="text-sm text-amber-800 dark:text-amber-200">
-              <span dangerouslySetInnerHTML={{ __html: t('home.guestWarning') }} />
-              <Link to="/login" className="text-amber-900 dark:text-amber-100 font-semibold hover:underline ml-1">{t('home.loginNow')}</Link>
-            </p>
-          </div>
+      <div className="rounded-2xl bg-amber-50/80 dark:bg-amber-900/20 border border-amber-200/60 dark:border-amber-700/40 p-4 flex items-center gap-3 backdrop-blur-sm">
+        <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-amber-400 to-amber-500 flex items-center justify-center text-white flex-shrink-0 shadow-sm">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
         </div>
-      )}
+        <div className="flex-1">
+          <p className="text-sm text-amber-800 dark:text-amber-200">
+            <span dangerouslySetInnerHTML={{ __html: t('home.guestWarning') }} />
+            <Link to="/login" className="text-amber-900 dark:text-amber-100 font-semibold hover:underline ml-1">{t('home.loginNow')}</Link>
+          </p>
+        </div>
+      </div>
       <div className="grid md:grid-cols-3 gap-4">
         <div className="glass-card-hover p-5">
           <div className="flex items-center gap-3 mb-3">

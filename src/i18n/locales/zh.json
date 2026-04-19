@@ -64,7 +64,16 @@
     "library": "书籍",
     "libraryDesc": "文章管理",
     "about": "关于",
-    "aboutDesc": "项目信息"
+    "aboutDesc": "项目信息",
+    "welcomeBack": "欢迎回来",
+    "dailyGoal": "今日目标",
+    "pendingReview": "待复习",
+    "streak": "连续天数",
+    "wordsWaiting": "个词待复习",
+    "wordsUnit": "个词",
+    "masteryOverview": "掌握概览",
+    "totalVocab": "总词汇",
+    "wrong": "错词"
   },
   "login": {
     "login": "登录",
@@ -355,7 +364,22 @@
     "reviewInfo": "复习 {{count}} 次 · 间隔 {{days}} 天",
     "collect": "收藏",
     "markMastered": "标记已掌握",
-    "addToWrongBook": "加入错词本"
+    "addToWrongBook": "加入错词本",
+    "editWord": "编辑单词",
+    "deleteWord": "删除单词",
+    "deleteConfirm": "确认删除",
+    "deleteWordConfirm": "确定要删除单词 \"{{term}}\" 吗？",
+    "deleteDictConfirm": "确定要删除词典 \"{{name}}\" 吗？此操作不可恢复。",
+    "deleteArticleConfirm": "确定要删除文章 \"{{title}}\" 吗？",
+    "editWordTitle": "编辑单词",
+    "termLabel": "单词",
+    "meaningLabel": "释义",
+    "ipaLabel": "音标",
+    "exampleLabel": "例句",
+    "synonymsLabel": "同义词（分号分隔）",
+    "saveSuccess": "保存成功",
+    "deleteSuccess": "删除成功",
+    "practiceNow": "去练习"
   },
   "search": {
     "placeholder": "搜索单词...",
@@ -374,7 +398,8 @@
     "dictManagement": "词典管理",
     "dictManagementDesc": "收藏、错词本、已掌握与自定义词典",
     "learningPanel": "学习面板",
-    "learningPanelDesc": "每日学习统计与签到记录"
+    "learningPanelDesc": "每日学习统计与签到记录",
+    "techStack": "技术栈"
   },
   "studyGuide": {
     "sm2Title": "SM-2 间隔重复算法",

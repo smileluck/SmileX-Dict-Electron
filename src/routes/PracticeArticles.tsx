@@ -2,8 +2,8 @@ import { useSelector } from 'react-redux'
 import type { RootState } from '../store'
 import { useMemo, useState } from 'react'
 import type { ReactElement } from 'react'
-import { API_BASE } from '../config'
 import { useTranslation } from 'react-i18next'
+import { statsApi } from '../services/api'
 
 type Mode = 'type' | 'read'
 
@@ -38,7 +38,7 @@ export default function PracticeArticles() {
 
   const nextLine = () => {
     if (isCorrect) {
-      fetch(`${API_BASE}/api/stats/event`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({type:'dictation'})})
+      statsApi.addEvent({ type: 'dictation' }).catch(() => {})
     }
     setTyped('')
     setLineIndex(i => {
@@ -53,7 +53,7 @@ export default function PracticeArticles() {
     return (
       <div className="space-y-4 page-enter">
         <div className="glass-card p-8 text-center">
-          <div className="text-gray-400 dark:text-gray-500 text-4xl mb-3">📖</div>
+          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="mx-auto mb-3 text-gray-300 dark:text-gray-600"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
           <div className="text-gray-500 dark:text-gray-400 mb-2">{t('practice.noArticles')}</div>
           <div className="text-sm text-gray-400 dark:text-gray-500">{t('practice.addArticlesFirst')}</div>
         </div>
@@ -83,7 +83,7 @@ export default function PracticeArticles() {
             {showZh && current?.contentZh && <div className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap">{current.contentZh}</div>}
             <div className="whitespace-pre-wrap text-gray-900 dark:text-gray-100">{current?.content}</div>
             <div className="mt-3">
-              <button className="btn-secondary" onClick={()=>{fetch(`${API_BASE}/api/stats/event`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({type:'review'})}); setIndex(i=> (i+1) % queue.length)}}>{t('practice.nextArticle')}</button>
+              <button className="btn-secondary" onClick={() => { statsApi.addEvent({ type: 'review' }).catch(() => {}); setIndex(i=> (i+1) % queue.length) }}>{t('practice.nextArticle')}</button>
             </div>
           </div>
         ) : (

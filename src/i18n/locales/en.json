@@ -64,7 +64,16 @@
     "library": "Books",
     "libraryDesc": "Article management",
     "about": "About",
-    "aboutDesc": "Project info"
+    "aboutDesc": "Project info",
+    "welcomeBack": "Welcome Back",
+    "dailyGoal": "Daily Goal",
+    "pendingReview": "To Review",
+    "streak": "Day Streak",
+    "wordsWaiting": "words to review",
+    "wordsUnit": " words",
+    "masteryOverview": "Mastery Overview",
+    "totalVocab": "Total",
+    "wrong": "Wrong"
   },
   "login": {
     "login": "Login",
@@ -355,7 +364,22 @@
     "reviewInfo": "Reviewed {{count}} times · Interval {{days}} days",
     "collect": "Favorite",
     "markMastered": "Mark as mastered",
-    "addToWrongBook": "Add to wrong words"
+    "addToWrongBook": "Add to wrong words",
+    "editWord": "Edit word",
+    "deleteWord": "Delete word",
+    "deleteConfirm": "Confirm Delete",
+    "deleteWordConfirm": "Are you sure you want to delete \"{{term}}\"?",
+    "deleteDictConfirm": "Are you sure you want to delete \"{{name}}\"? This cannot be undone.",
+    "deleteArticleConfirm": "Are you sure you want to delete \"{{title}}\"?",
+    "editWordTitle": "Edit Word",
+    "termLabel": "Word",
+    "meaningLabel": "Meaning",
+    "ipaLabel": "IPA",
+    "exampleLabel": "Example",
+    "synonymsLabel": "Synonyms (semicolon separated)",
+    "saveSuccess": "Saved successfully",
+    "deleteSuccess": "Deleted successfully",
+    "practiceNow": "Practice"
   },
   "search": {
     "placeholder": "Search words...",
@@ -374,7 +398,8 @@
     "dictManagement": "Dictionary Management",
     "dictManagementDesc": "Favorites, wrong words, mastered & custom dictionaries",
     "learningPanel": "Learning Panel",
-    "learningPanelDesc": "Daily statistics & sign-in records"
+    "learningPanelDesc": "Daily statistics & sign-in records",
+    "techStack": "Tech Stack"
   },
   "studyGuide": {
     "sm2Title": "SM-2 Spaced Repetition Algorithm",

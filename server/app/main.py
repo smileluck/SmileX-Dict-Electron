@@ -18,6 +18,7 @@ from app.routers import (
     data,
     dicts,
     health,
+    learning,
     settings as settings_router,
     stats,
     words,
@@ -71,6 +72,7 @@ def _register_routers(app: FastAPI):
         settings_router.router, prefix="/api/settings", tags=["Settings"]
     )
     app.include_router(data.router, prefix="/api", tags=["Data"])
+    app.include_router(learning.router, prefix="/api/learning", tags=["Learning"])
     app.include_router(health.router, prefix="/api", tags=["Health"])
 
 

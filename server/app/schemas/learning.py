@@ -24,6 +24,7 @@ class LearningProgress(BaseModel):
 
 
 class LearningProgressUpdate(BaseModel):
+    word_id: Optional[str] = None
     status: Optional[str] = None
     efactor: Optional[float] = None
     interval: Optional[int] = None
