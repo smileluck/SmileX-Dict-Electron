@@ -256,7 +256,7 @@ export interface DictItem {
 export const dictsApi = {
   list: () => request<DictItem[]>('/api/dicts'),
   create: (data: { name: string; wordCount?: number }) => request<DictItem>('/api/dicts', { method: 'POST', body: data }),
-  update: (id: string, data: { name?: string }) => request<DictItem>(`/api/dicts/${id}`, { method: 'PUT', body: data }),
+  update: (id: string, data: { name?: string; description?: string }) => request<DictItem>(`/api/dicts/${id}`, { method: 'PUT', body: data }),
   delete: (id: string) => request<void>(`/api/dicts/${id}`, { method: 'DELETE' }),
 }
 
@@ -265,6 +265,8 @@ export interface WordItem {
   id: string
   term: string
   ipa?: string
+  phonetic_uk?: string
+  phonetic_us?: string
   meaning: string
   enMeaning?: string
   example?: string
@@ -275,7 +277,14 @@ export interface WordItem {
 }
 
 export const wordsApi = {
-  list: (dictId?: string) => request<WordItem[]>('/api/words' + (dictId ? `?dictId=${dictId}` : '')),
+  list: (dictId?: string, page?: number, pageSize?: number) => {
+    const params = new URLSearchParams()
+    if (dictId) params.set('dictId', dictId)
+    if (page) params.set('page', String(page))
+    if (pageSize) params.set('pageSize', String(pageSize))
+    const qs = params.toString()
+    return request<WordItem[]>('/api/words' + (qs ? `?${qs}` : ''))
+  },
   create: (data: WordItem) => request<WordItem>('/api/words', { method: 'POST', body: data }),
   update: (id: string, data: Partial<WordItem>) => request<WordItem>(`/api/words/${id}`, { method: 'PUT', body: data }),
   delete: (id: string) => request<void>(`/api/words/${id}`, { method: 'DELETE' }),

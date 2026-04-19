@@ -160,6 +160,8 @@ def lookup_word_api(
 @router.get("", response_model=List[WordItem])
 def list_words(
     dictId: Optional[str] = None,
+    page: int = Query(default=1, ge=1),
+    pageSize: int = Query(default=50, ge=1, le=200),
     current_user: UserModel = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
@@ -182,7 +184,14 @@ def list_words(
     if not word_ids:
         return []
 
-    words = db.query(WordModel).filter(WordModel.id.in_(word_ids)).all()
+    offset = (page - 1) * pageSize
+    words = (
+        db.query(WordModel)
+        .filter(WordModel.id.in_(word_ids))
+        .offset(offset)
+        .limit(pageSize)
+        .all()
+    )
     return _build_word_items_for_user(db, words, current_user.id)
 
 

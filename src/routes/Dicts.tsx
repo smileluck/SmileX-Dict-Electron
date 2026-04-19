@@ -316,6 +316,7 @@ export default function Dicts() {
                 ) : (
                   <>
                     <button className="px-2 py-1 border border-gray-200 dark:border-gray-700 rounded-lg text-xs hover:bg-gray-50 dark:hover:bg-gray-700/50" onClick={() => dispatch(setActive(d.id))}>{t('dicts.setCurrent')}</button>
+                    <button className="px-2 py-1 border border-gray-200 dark:border-gray-700 rounded-lg text-xs hover:bg-gray-50 dark:hover:bg-gray-700/50" onClick={() => navigate(`/dicts/${d.id}/edit`)}>{t('common.edit')}</button>
                     <button className="px-2 py-1 border border-gray-200 dark:border-gray-700 rounded-lg text-xs hover:bg-gray-50 dark:hover:bg-gray-700/50" onClick={() => { setSelectedDictForImport(d.id); setShowImport(true) }}>{t('dicts.import')}</button>
                     <button className="px-2 py-1 border border-red-200 dark:border-red-800 rounded-lg text-xs text-red-500 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20" onClick={() => setDeleteDictId(d.id)}>{t('common.delete')}</button>
                   </>

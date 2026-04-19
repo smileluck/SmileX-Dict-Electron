@@ -18,6 +18,7 @@ import Mastered from './routes/Mastered'
 import Login from './routes/Login'
 import Settings from './routes/Settings'
 import VocabularyAnalysis from './routes/VocabularyAnalysis'
+import DictEdit from './routes/DictEdit'
 import ErrorBoundary from './components/ErrorBoundary'
 import { ToastProvider } from './components/Toast'
 import SearchDialog from './components/SearchDialog'
@@ -397,6 +398,7 @@ function App() {
             <Routes>
               <Route path="/" element={<Home />} />
               <Route path="/dicts" element={<Dicts />} />
+              <Route path="/dicts/:id/edit" element={isAuthenticated ? <DictEdit /> : <Navigate to="/login" state={{ from: '/dicts' }} replace />} />
               <Route path="/panel" element={isAuthenticated ? <Panel /> : <Navigate to="/login" state={{ from: '/panel' }} replace />} />
               <Route path="/library" element={<Library />} />
               <Route path="/library/new" element={isAuthenticated ? <LibraryAdd /> : <Navigate to="/login" state={{ from: '/library/new' }} replace />} />
